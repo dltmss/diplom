@@ -1,0 +1,18 @@
+.profile-container {
+  padding: 2rem;
+  font-family: sans-serif;
+}
+
+.profile-header h1 {
+  margin-bottom: 1rem;
+}
+
+.profile-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.profile-item {
+  font-size: 1.1rem;
+}
