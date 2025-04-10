@@ -1,4 +1,6 @@
 import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Users, BarChart3, Clock } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -8,36 +10,34 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, BarChart, Database, Clock } from "lucide-react";
 
 // Данные для графика
 const data = [
   { name: "Янв", value: 400 },
-  { name: "Фев", value: 300 },
-  { name: "Мар", value: 500 },
+  { name: "Фев", value: 600 },
+  { name: "Мар", value: 800 },
   { name: "Апр", value: 700 },
-  { name: "Май", value: 600 },
-  { name: "Июн", value: 800 },
+  { name: "Май", value: 900 },
+  { name: "Июн", value: 1000 },
 ];
 
 // Данные для карточек
 const stats = [
-  { title: "Пользователи", value: "145", icon: User },
-  { title: "Запросы", value: "312", icon: BarChart },
-  { title: "Данные", value: "512", icon: Database },
-  { title: "Среднее время", value: "0.84 сек", icon: Clock },
+  { title: "Активные пользователи", value: "320", icon: Users },
+  { title: "Запросов обработано", value: "1 240", icon: BarChart3 },
+  { title: "Среднее время ответа", value: "0.76 сек", icon: Clock },
 ];
 
-export default function Dashboard() {
+export default function Analytics() {
   return (
     <div className="space-y-6">
+      {/* Заголовок страницы */}
       <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
-        Главная панель
+        Аналитика данных
       </h1>
 
-      {/* Карточки статистики */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Карточки */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {stats.map((stat) => (
           <Card
             key={stat.title}
@@ -61,7 +61,7 @@ export default function Dashboard() {
       {/* График */}
       <div className="mt-10">
         <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">
-          График по данным
+          Динамика по месяцам
         </h2>
         <div className="h-64 bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
           <ResponsiveContainer width="100%" height="100%">

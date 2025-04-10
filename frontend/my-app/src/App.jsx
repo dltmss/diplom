@@ -1,28 +1,40 @@
-import React from "react";
+import React, { useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Header from "./components/Header";
-
-import Login from "./pages/Login";
-import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
+import Analytics from "./pages/Analytics";
+import Sidebar from "./components/Sidebar";
+import Topbar from "./components/Topbar";
 
-const App = () => {
+export default function App() {
+  const [isSidebarOpen, setSidebarOpen] = useState(true);
+
+  const toggleSidebar = () => {
+    setSidebarOpen(!isSidebarOpen);
+  };
+
   return (
     <Router>
-      <Header />
-      <Routes>
-        <Route
-          path="/"
-          element={<h1 style={{ padding: "1rem" }}>Қош келдіңіз!</h1>}
-        />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/profile" element={<Profile />} />
-      </Routes>
+      <div className="flex">
+        {/* Sidebar */}
+        <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
+
+        {/* Основной контент */}
+        <main className="flex-1 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
+          {/* Topbar с кнопкой для открытия Sidebar */}
+          <Topbar toggleSidebar={toggleSidebar} />
+
+          {/* Контент страниц */}
+          <div className="p-6">
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/analytics" element={<Analytics />} />
+              {/* Можем добавить ещё другие страницы, например: история, настройки */}
+            </Routes>
+          </div>
+        </main>
+      </div>
     </Router>
   );
-};
-
-export default App;
+}
