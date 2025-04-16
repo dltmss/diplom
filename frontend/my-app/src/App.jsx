@@ -5,6 +5,10 @@ import Profile from "./pages/Profile";
 import Analytics from "./pages/Analytics";
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Landing from "./pages/Landing";
+import { Toaster } from "react-hot-toast";
 
 export default function App() {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
@@ -15,26 +19,42 @@ export default function App() {
 
   return (
     <Router>
-      <div className="flex">
-        {/* Sidebar */}
-        <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
+      {/* Toaster для уведомлений */}
+      <Toaster position="top-right" reverseOrder={false} />
 
-        {/* Основной контент */}
-        <main className="flex-1 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
-          {/* Topbar с кнопкой для открытия Sidebar */}
-          <Topbar toggleSidebar={toggleSidebar} />
+      <Routes>
+        {/* Публичные маршруты без Sidebar и Topbar */}
+        <Route path="/" element={<Landing />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-          {/* Контент страниц */}
-          <div className="p-6">
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/analytics" element={<Analytics />} />
-              {/* Можем добавить ещё другие страницы, например: история, настройки */}
-            </Routes>
-          </div>
-        </main>
-      </div>
+        {/* Основной макет с Sidebar и Topbar */}
+        <Route
+          path="/*"
+          element={
+            <div className="flex">
+              {/* Sidebar */}
+              <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
+
+              {/* Main content */}
+              <main className="flex-1 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
+                {/* Topbar */}
+                <Topbar toggleSidebar={toggleSidebar} />
+
+                {/* Page content */}
+                <div className="p-6">
+                  <Routes>
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/analytics" element={<Analytics />} />
+                    {/* Добавишь новые страницы сюда */}
+                  </Routes>
+                </div>
+              </main>
+            </div>
+          }
+        />
+      </Routes>
     </Router>
   );
 }

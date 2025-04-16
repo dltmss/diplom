@@ -1,85 +1,75 @@
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, BarChart3, Clock } from "lucide-react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+// src/pages/AnalyticsHome.jsx
 
-// Данные для графика
-const data = [
-  { name: "Янв", value: 400 },
-  { name: "Фев", value: 600 },
-  { name: "Мар", value: 800 },
-  { name: "Апр", value: 700 },
-  { name: "Май", value: 900 },
-  { name: "Июн", value: 1000 },
-];
+import React, { useState } from "react";
+import { Upload } from "lucide-react";
 
-// Данные для карточек
-const stats = [
-  { title: "Активные пользователи", value: "320", icon: Users },
-  { title: "Запросов обработано", value: "1 240", icon: BarChart3 },
-  { title: "Среднее время ответа", value: "0.76 сек", icon: Clock },
-];
+export default function AnalyticsHome() {
+  const [username] = useState("Айгүл"); // допустим, имя приходит из сессии или профиля
 
-export default function Analytics() {
+  const buttons = [
+    "Аккаунттар туралы шолу",
+    "Адамдар туралы талдау",
+    "Тапсырыстар бойынша қорытынды",
+    "Аналитикалық оқиғаларға көз жүгірту",
+    "Өнімдерге көз жүгірту",
+    "Кері байланысты шолу",
+    "Шот-фактуралар қорытындысы",
+    "Пікірлер туралы түсініктер",
+  ];
+
   return (
-    <div className="space-y-6">
-      {/* Заголовок страницы */}
-      <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
-        Аналитика данных
-      </h1>
+    <div className="min-h-screen bg-gray-100 text-gray-800 p-8">
+      <div className="max-w-6xl mx-auto">
+        <h1 className="text-2xl font-semibold mb-6">
+          Қалыңыз қалай, {username}? 👋
+        </h1>
 
-      {/* Карточки */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {stats.map((stat) => (
-          <Card
-            key={stat.title}
-            className="transition-all duration-300 hover:shadow-lg dark:hover:shadow-xl"
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                {stat.title}
-              </CardTitle>
-              <stat.icon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-800 dark:text-white">
-                {stat.value}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold mb-2">
+            Өз деректеріңізді жүктеңіз
+          </h2>
+          <div className="flex items-center gap-4">
+            <input
+              type="file"
+              accept=".csv, .xlsx"
+              className="border border-gray-300 px-4 py-2 rounded-md bg-white shadow-sm w-72"
+            />
+            <button className="bg-blue-600 text-white px-4 py-2 rounded-md flex items-center gap-2 hover:bg-blue-700 transition">
+              <Upload className="w-4 h-4" /> Жүктеу
+            </button>
+          </div>
+        </div>
 
-      {/* График */}
-      <div className="mt-10">
-        <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">
-          Динамика по месяцам
-        </h2>
-        <div className="h-64 bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
-              <XAxis dataKey="name" stroke="#8884d8" />
-              <YAxis stroke="#8884d8" />
-              <Tooltip />
-              <Line
-                type="monotone"
-                dataKey="value"
-                stroke="#3b82f6"
-                strokeWidth={2}
-                dot={{ r: 3 }}
-                activeDot={{ r: 6 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+        <div>
+          <p className="text-sm text-gray-600 mb-4">
+            Біздің платформа не істей алатынын көру үшін төмендегі үлгі
+            панельдерді басыңыз:
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {buttons.map((text, index) => (
+              <button
+                key={index}
+                className="border border-gray-300 rounded-lg px-6 py-4 bg-white shadow-sm hover:shadow-md transition flex items-center gap-2"
+              >
+                <span className="text-yellow-500">💡</span>
+                <span className="text-sm">{text}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-12">
+          <h3 className="text-sm text-gray-500 font-medium mb-2 uppercase">
+            ЖИНАҚТАМАЛАР
+          </h3>
+          <div className="flex flex-col gap-1 text-sm text-blue-600">
+            <span className="cursor-pointer hover:underline">
+              Біздің аналитика
+            </span>
+            <span className="cursor-pointer hover:underline">
+              Жеке жинақтамаңыз
+            </span>
+          </div>
         </div>
       </div>
     </div>
