@@ -1,28 +1,48 @@
 import React from "react";
 
-export default function DataTable({ data }) {
-  if (!data || data.length === 0) return null;
-
-  const headers = Object.keys(data[0]);
-
+/**
+ * DataTable component
+ * @param {string[]} headers - массив заголовков
+ * @param {Array<Array<string|number>>} data - двумерный массив строк
+ * @param {function} rowKey - функция для генерации ключа строки
+ */
+export default function DataTable({ headers, data, rowKey = (row, i) => i }) {
   return (
-    <div className="overflow-auto border rounded-lg mt-4">
-      <table className="min-w-full text-sm bg-white rounded">
-        <thead className="bg-purple-600 text-white">
+    <div className="overflow-x-auto rounded-lg shadow bg-white">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50 sticky top-0 z-10">
           <tr>
-            {headers.map((key) => (
-              <th key={key} className="p-2 text-left border">
-                {key}
+            {headers.map((h, idx) => (
+              <th
+                key={idx}
+                scope="col"
+                className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap"
+                style={{ minWidth: "100px" }}
+                title={h}
+              >
+                {h}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody>
-          {data.map((row, idx) => (
-            <tr key={idx} className="border-t">
-              {headers.map((key) => (
-                <td key={key} className="p-2 border">
-                  {row[key]}
+        <tbody className="divide-y divide-gray-100">
+          {data.map((row, rIdx) => (
+            <tr
+              key={rowKey(row, rIdx)}
+              className={
+                rIdx % 2 === 0
+                  ? "bg-gray-50 hover:bg-gray-100"
+                  : "hover:bg-gray-100"
+              }
+            >
+              {row.map((cell, cIdx) => (
+                <td
+                  key={cIdx}
+                  className="px-4 py-2 whitespace-nowrap text-sm text-gray-800 truncate"
+                  style={{ maxWidth: "120px" }}
+                  title={String(cell)}
+                >
+                  {cell}
                 </td>
               ))}
             </tr>
