@@ -4,6 +4,8 @@ import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   BarChart2,
+  Activity,
+  DollarSign,
   Calendar,
   Settings,
   User,
@@ -13,8 +15,10 @@ import {
 
 const menuItems = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Басты бет" },
+  { to: "/monitoring", icon: Activity, label: "Мониторинг" },
   { to: "/analytics/upload", icon: BarChart2, label: "Аналитика" },
   { to: "/history", icon: Calendar, label: "Дерек тарихы" },
+  { to: "/finance", icon: DollarSign, label: "Қаражаттар" },
   { to: "/settings", icon: Settings, label: "Жүйені баптау" },
 ];
 
@@ -62,8 +66,6 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
         {/* Навигация */}
         <nav className="flex flex-col space-y-1 px-2">
           {menuItems.map(({ to, icon: Icon, label }) => {
-            // Считаем активным, если текущий путь точно равен to
-            // или начинается с to + "/"
             const isActive =
               location.pathname === to ||
               (to !== "/" && location.pathname.startsWith(to + "/"));
@@ -105,17 +107,15 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
           <NavLink
             to="/profile"
             onClick={handleLinkClick}
-            className={({ isActive }) =>
-              `
-                flex items-center px-3 py-2 rounded-md
-                transition-all duration-300 ease-in-out group
-                ${
-                  isActive
-                    ? "bg-gradient-to-r from-blue-500 to-blue-700 text-white font-semibold shadow-md"
-                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
-                }
-              `
-            }
+            className={({ isActive }) => `
+              flex items-center px-3 py-2 rounded-md
+              transition-all duration-300 ease-in-out group
+              ${
+                isActive
+                  ? "bg-gradient-to-r from-blue-500 to-blue-700 text-white font-semibold shadow-md"
+                  : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+              }
+            `}
           >
             <User className="w-5 h-5 mr-3 transition-transform duration-300 group-hover:scale-110" />
             <span
