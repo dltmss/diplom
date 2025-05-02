@@ -53,7 +53,6 @@ export default function App() {
   useEffect(() => {
     const { fontFamily, fontSize, highContrast, theme, language, accentColor } =
       settings;
-
     document.documentElement.style.setProperty("--font-family", fontFamily);
     document.documentElement.style.setProperty(
       "--font-size-base",
@@ -63,7 +62,6 @@ export default function App() {
     document.documentElement.classList.toggle("dark", theme === "dark");
     document.documentElement.lang = language;
     document.documentElement.style.setProperty("--accent-color", accentColor);
-
     localStorage.setItem("settings", JSON.stringify(settings));
   }, [settings]);
 
@@ -77,9 +75,8 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* 2) Private layout */}
+        {/* 2) PrivateLayout для всех защищённых страниц */}
         <Route
-          path="/*"
           element={
             <PrivateLayout
               isOpen={isSidebarOpen}
@@ -87,19 +84,14 @@ export default function App() {
             />
           }
         >
-          {/* default */}
-          <Route index element={<Navigate to="dashboard" replace />} />
-
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="monitoring" element={<Monitoring />} />
           <Route path="finance" element={<Finance />} />
 
-          <Route path="analytics">
-            <Route index element={<Navigate to="upload" replace />} />
-            <Route path="upload" element={<AnalyticsUpload />} />
-            <Route path="filter" element={<AnalyticsFilter />} />
-            <Route path="visualize" element={<AnalyticsVisualize />} />
-          </Route>
+          {/* Аналитика */}
+          <Route path="analytics/upload" element={<AnalyticsUpload />} />
+          <Route path="analytics/filter" element={<AnalyticsFilter />} />
+          <Route path="analytics/visualize" element={<AnalyticsVisualize />} />
 
           <Route path="history" element={<History />} />
           <Route
@@ -109,13 +101,14 @@ export default function App() {
           <Route path="profile" element={<Profile />} />
         </Route>
 
-        {/* 3) Fallback → Landing */}
+        {/* 3) Любой другой → Landing */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );
 }
 
+// Layout для приватной зоны
 function PrivateLayout({ isOpen, toggleSidebar }) {
   return (
     <div className="flex">

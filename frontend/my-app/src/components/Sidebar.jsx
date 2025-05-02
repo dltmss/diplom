@@ -60,7 +60,7 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
             ${!isOpen ? "text-center p-2" : ""}
           `}
         >
-          {isOpen ? "Dashboard" : "D"}
+          {isOpen ? "BCD Company" : "B"}
         </div>
 
         {/* Навигация */}
