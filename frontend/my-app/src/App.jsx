@@ -9,12 +9,16 @@ import {
 } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
+// public pages
 import Landing from "./pages/Landing.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 
+// private pages
 import Dashboard from "./pages/Dashboard.jsx";
-import Analytics from "./pages/Analytics.jsx";
+import AnalyticsUpload from "./pages/AnalyticsUpload.jsx";
+import AnalyticsFilter from "./pages/AnalyticsFilter.jsx";
+import AnalyticsVisualize from "./pages/AnalyticsVisualize.jsx";
 import History from "./pages/History.jsx";
 import Settings from "./pages/Settings.jsx";
 import Profile from "./pages/Profile.jsx";
@@ -26,7 +30,7 @@ export default function App() {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const toggleSidebar = () => setSidebarOpen((o) => !o);
 
-  // Пример: общие настройки (если нужны)
+  // глобальные настройки для Settings.jsx
   const [settings, setSettings] = useState({
     idleTimeout: 15,
     fontFamily: "sans-serif",
@@ -37,16 +41,17 @@ export default function App() {
     accentColor: "#4f46e5",
   });
 
-  // При монтировании считываем настройки
+  // загружаем из localStorage
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem("settings") || "{}");
     setSettings((s) => ({ ...s, ...saved }));
   }, []);
 
-  // Применяем и сохраняем
+  // применяем + сохраняем обратно
   useEffect(() => {
     const { fontFamily, fontSize, highContrast, theme, language, accentColor } =
       settings;
+
     document.documentElement.style.setProperty("--font-family", fontFamily);
     document.documentElement.style.setProperty(
       "--font-size-base",
@@ -56,6 +61,7 @@ export default function App() {
     document.documentElement.classList.toggle("dark", theme === "dark");
     document.documentElement.lang = language;
     document.documentElement.style.setProperty("--accent-color", accentColor);
+
     localStorage.setItem("settings", JSON.stringify(settings));
   }, [settings]);
 
@@ -64,13 +70,14 @@ export default function App() {
       <Toaster position="top-right" />
 
       <Routes>
-        {/* Public */}
+        {/* 1) Public */}
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* Protected */}
+        {/* 2) PrivateLayout для всех остальных */}
         <Route
+          path="/*"
           element={
             <PrivateLayout
               isOpen={isSidebarOpen}
@@ -78,24 +85,32 @@ export default function App() {
             />
           }
         >
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/analytics" element={<Analytics />} />
-          <Route path="/history" element={<History />} />
+          <Route path="dashboard" element={<Dashboard />} />
+
+          <Route path="analytics">
+            <Route path="upload" element={<AnalyticsUpload />} />
+            <Route path="filter" element={<AnalyticsFilter />} />
+            <Route path="visualize" element={<AnalyticsVisualize />} />
+          </Route>
+
+          <Route path="history" element={<History />} />
+
+          {/* Передаём props в Settings */}
           <Route
-            path="/settings"
+            path="settings"
             element={<Settings settings={settings} setSettings={setSettings} />}
           />
-          <Route path="/profile" element={<Profile />} />
+
+          <Route path="profile" element={<Profile />} />
         </Route>
 
-        {/* Все остальные — на главную */}
+        {/* 3) Всё, что не попало выше — на лэндинг */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );
 }
 
-// Layout для защищённых страниц
 function PrivateLayout({ isOpen, toggleSidebar }) {
   return (
     <div className="flex">

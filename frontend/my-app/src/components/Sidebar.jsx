@@ -13,7 +13,7 @@ import {
 
 const menuItems = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Басты бет" },
-  { to: "/analytics", icon: BarChart2, label: "Аналитика" },
+  { to: "/analytics/upload", icon: BarChart2, label: "Аналитика" },
   { to: "/history", icon: Calendar, label: "Дерек тарихы" },
   { to: "/settings", icon: Settings, label: "Жүйені баптау" },
 ];
@@ -30,10 +30,10 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
   return (
     <aside
       className={`
-        fixed md:sticky top-0 left-0 z-40 h-screen 
-        ${isOpen ? "w-64" : "w-20"} 
-        bg-white dark:bg-gray-900 
-        flex flex-col justify-between 
+        fixed md:sticky top-0 left-0 z-40 h-screen
+        ${isOpen ? "w-64" : "w-20"}
+        bg-white dark:bg-gray-900
+        flex flex-col justify-between
         transition-all duration-300 ease-in-out
       `}
     >
@@ -47,27 +47,35 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
         </button>
       </div>
 
-      {/* Навигация */}
+      {/* Логотип / название */}
       <div>
         <div
-          className={`p-6 text-2xl font-bold text-gray-800 dark:text-white transition-all duration-300 ${
-            !isOpen ? "text-center p-2" : ""
-          }`}
+          className={`
+            p-6 text-2xl font-bold text-gray-800 dark:text-white
+            transition-all duration-300
+            ${!isOpen ? "text-center p-2" : ""}
+          `}
         >
           {isOpen ? "Dashboard" : "D"}
         </div>
 
+        {/* Навигация */}
         <nav className="flex flex-col space-y-1 px-2">
-          {menuItems.map((item) => {
-            const isActive = location.pathname === item.to;
+          {menuItems.map(({ to, icon: Icon, label }) => {
+            // Считаем активным, если текущий путь точно равен to
+            // или начинается с to + "/"
+            const isActive =
+              location.pathname === to ||
+              (to !== "/" && location.pathname.startsWith(to + "/"));
+
             return (
               <NavLink
-                key={item.to}
-                to={item.to}
+                key={to}
+                to={to}
                 onClick={handleLinkClick}
                 className={`
-                  flex items-center px-3 py-2 rounded-md 
-                  transition-all duration-300 ease-in-out group 
+                  flex items-center px-3 py-2 rounded-md
+                  transition-all duration-300 ease-in-out group
                   ${
                     isActive
                       ? "bg-gradient-to-r from-blue-500 to-blue-700 text-white font-semibold shadow-md"
@@ -75,15 +83,15 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
                   }
                 `}
               >
-                <item.icon className="w-5 h-5 mr-3 transition-transform duration-300 group-hover:scale-110" />
+                <Icon className="w-5 h-5 mr-3 transition-transform duration-300 group-hover:scale-110" />
                 <span
                   className={`
-                    transition-all duration-300 ease-in-out 
-                    ${isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden"} 
+                    transition-all duration-300 ease-in-out
+                    ${isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden"}
                     group-hover:translate-x-1
                   `}
                 >
-                  {item.label}
+                  {label}
                 </span>
               </NavLink>
             );
@@ -91,7 +99,7 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
         </nav>
       </div>
 
-      {/* Профиль / Выход */}
+      {/* Профиль и выход */}
       <div className="px-2 py-4 border-t border-gray-200 dark:border-gray-700">
         <nav className="flex flex-col space-y-1">
           <NavLink
@@ -99,8 +107,8 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
             onClick={handleLinkClick}
             className={({ isActive }) =>
               `
-                flex items-center px-3 py-2 rounded-md 
-                transition-all duration-300 ease-in-out group 
+                flex items-center px-3 py-2 rounded-md
+                transition-all duration-300 ease-in-out group
                 ${
                   isActive
                     ? "bg-gradient-to-r from-blue-500 to-blue-700 text-white font-semibold shadow-md"
@@ -112,8 +120,8 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
             <User className="w-5 h-5 mr-3 transition-transform duration-300 group-hover:scale-110" />
             <span
               className={`
-                transition-all duration-300 ease-in-out 
-                ${isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden"} 
+                transition-all duration-300 ease-in-out
+                ${isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden"}
                 group-hover:translate-x-1
               `}
             >
@@ -126,13 +134,19 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
               alert("Сіз сәтті шықтыңыз!");
               handleLinkClick();
             }}
-            className="flex items-center px-3 py-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-red-100 dark:hover:bg-red-900 hover:text-red-600 dark:hover:text-red-400 transition-all duration-300 group"
+            className="
+              flex items-center px-3 py-2 rounded-md
+              text-gray-700 dark:text-gray-300
+              hover:bg-red-100 dark:hover:bg-red-900
+              hover:text-red-600 dark:hover:text-red-400
+              transition-all duration-300 group
+            "
           >
             <LogOut className="w-5 h-5 mr-3 transition-transform duration-300 group-hover:scale-110" />
             <span
               className={`
-                transition-all duration-300 ease-in-out 
-                ${isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden"} 
+                transition-all duration-300 ease-in-out
+                ${isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden"}
                 group-hover:translate-x-1
               `}
             >
