@@ -1,5 +1,5 @@
 // src/pages/AnalyticsFilter.jsx
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Card,
@@ -9,83 +9,96 @@ import {
 } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { Filter } from "lucide-react";
+import { useHistoryLog } from "../contexts/HistoryContext";
 
 export default function AnalyticsFilter() {
   const navigate = useNavigate();
+  const { addEvent } = useHistoryLog();
   const { state } = useLocation();
   const { headers = [], data = [] } = state || {};
 
-  // Если нет данных — возвращаемся на загрузку
+  // Если нет данных — редирект обратно
   useEffect(() => {
     if (!headers.length || !data.length) {
       navigate("/analytics/upload", { replace: true });
     }
   }, [headers, data, navigate]);
 
-  // Фильтры
-  const [globalQuery, setGlobalQuery] = useState("");
-  const [equipmentFilter, setEquipmentFilter] = useState([]);
+  // Состояния фильтра
+  const [globalSearch, setGlobalSearch] = useState("");
+  const [selectedEquip, setSelectedEquip] = useState([]);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [colIndex, setColIndex] = useState(0);
   const [operator, setOperator] = useState("contains");
   const [filterValue, setFilterValue] = useState("");
-
-  // Видимость колонок
   const [visibleCols, setVisibleCols] = useState(headers.map(() => true));
-
-  // Сортировка
   const [sortCol, setSortCol] = useState(null);
   const [sortAsc, setSortAsc] = useState(true);
 
-  // Отфильтрованные и отсортированные данные
+  // Fullscreen API
+  const tableContainerRef = useRef(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      tableContainerRef.current?.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  };
+
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, []);
+
+  // Фильтрация и сортировка
   const filtered = useMemo(() => {
-    return data
-      .filter((row) => {
-        // 1) Глобальный поиск
-        if (globalQuery) {
-          const hay = row.join(" ").toLowerCase();
-          if (!hay.includes(globalQuery.toLowerCase())) return false;
-        }
-        // 2) Multi-select оборудования (колонка "Жабдық")
-        const eqIdx = headers.indexOf("Жабдық");
-        if (equipmentFilter.length && eqIdx >= 0) {
-          if (!equipmentFilter.includes(row[eqIdx])) return false;
-        }
-        // 3) Диапазон дат (колонка "Күні")
-        const dateIdx = headers.indexOf("Күні");
-        if (dateIdx >= 0) {
-          const d = row[dateIdx];
-          if (fromDate && d < fromDate) return false;
-          if (toDate && d > toDate) return false;
-        }
-        // 4) Фильтр по выбранной колонке + оператор
-        if (filterValue) {
-          const cell = row[colIndex];
-          const val = String(cell).toLowerCase();
-          const fv = filterValue.toLowerCase();
-          if (operator === "contains" && !val.includes(fv)) return false;
-          if (operator === "equals" && val !== fv) return false;
-          if (operator === "gt" && Number(cell) <= Number(filterValue))
-            return false;
-          if (operator === "lt" && Number(cell) >= Number(filterValue))
-            return false;
-        }
-        return true;
-      })
-      .sort((a, b) => {
-        if (sortCol === null) return 0;
-        const aa = a[sortCol];
-        const bb = b[sortCol];
-        if (aa === bb) return 0;
-        const cmp = aa > bb ? 1 : -1;
+    let rows = data.filter((row) => {
+      if (globalSearch) {
+        const hay = row.join(" ").toLowerCase();
+        if (!hay.includes(globalSearch.toLowerCase())) return false;
+      }
+      const eqIdx = headers.indexOf("Жабдық");
+      if (eqIdx >= 0 && selectedEquip.length) {
+        if (!selectedEquip.includes(row[eqIdx])) return false;
+      }
+      const dateIdx = headers.indexOf("Күні");
+      if (dateIdx >= 0) {
+        if (fromDate && row[dateIdx] < fromDate) return false;
+        if (toDate && row[dateIdx] > toDate) return false;
+      }
+      if (filterValue) {
+        const cell = String(row[colIndex]).toLowerCase();
+        const fv = filterValue.toLowerCase();
+        if (operator === "contains" && !cell.includes(fv)) return false;
+        if (operator === "equals" && cell !== fv) return false;
+        if (operator === "gt" && Number(cell) <= Number(filterValue))
+          return false;
+        if (operator === "lt" && Number(cell) >= Number(filterValue))
+          return false;
+      }
+      return true;
+    });
+
+    if (sortCol !== null) {
+      rows.sort((a, b) => {
+        const v1 = a[sortCol],
+          v2 = b[sortCol];
+        if (v1 === v2) return 0;
+        const cmp = v1 > v2 ? 1 : -1;
         return sortAsc ? cmp : -cmp;
       });
+    }
+    return rows;
   }, [
     data,
     headers,
-    globalQuery,
-    equipmentFilter,
+    globalSearch,
+    selectedEquip,
     fromDate,
     toDate,
     colIndex,
@@ -95,80 +108,91 @@ export default function AnalyticsFilter() {
     sortAsc,
   ]);
 
-  // Экспорт в CSV
+  // CSV-экспорт
   const exportCSV = () => {
     if (!filtered.length) return;
-    const activeH = headers.filter((_, i) => visibleCols[i]);
+    const activeHeaders = headers.filter((_, i) => visibleCols[i]);
     const rows = [
-      activeH.join(","),
+      activeHeaders.join(","),
       ...filtered.map((r) => r.filter((_, i) => visibleCols[i]).join(",")),
     ];
-    const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+    const csv = rows.join("\n");
+    const filename = `filtered_${Date.now()}.csv`;
+    const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
+
     const a = document.createElement("a");
     a.href = url;
-    a.download = `filtered_${Date.now()}.csv`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+
+    addEvent({
+      type: "Filter CSV",
+      params: {
+        dateFrom: fromDate,
+        dateTo: toDate,
+        cols: activeHeaders,
+      },
+      file: filename,
+    });
   };
 
-  // Фирменный цвет
-  const ACCENT = "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500 text-white";
-
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Сте́ппер */}
-      <div className="flex items-center justify-center space-x-4">
-        {["Жүктеу", "Сүзу", "Визуализация"].map((lab, i) => (
-          <React.Fragment key={i}>
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                i === 1 ? "bg-blue-600 text-white" : "bg-gray-300 text-gray-700"
-              }`}
-            >
-              {i + 1}
-            </div>
-            <span
-              className={`text-sm ${
-                i === 1 ? "font-semibold text-blue-600" : "text-gray-600"
-              }`}
-            >
-              {lab}
-            </span>
-            {i < 2 && <div className="flex-1 h-px bg-gray-300" />}
-          </React.Fragment>
-        ))}
+    <div className="max-w-7xl mx-auto px-6 py-4 space-y-6">
+      {/* Шаги */}
+      <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1">
+          <span className="w-6 h-6 flex items-center justify-center rounded-full bg-indigo-600 text-white">
+            1
+          </span>
+          <span className="text-gray-600">Жүктеу</span>
+        </div>
+        <div className="flex-1 h-px bg-gray-300" />
+        <div className="flex items-center space-x-1">
+          <span className="w-6 h-6 flex items-center justify-center rounded-full bg-indigo-600 text-white">
+            2
+          </span>
+          <span className="text-indigo-600 font-semibold">Сүзу</span>
+        </div>
+        <div className="flex-1 h-px bg-gray-300" />
+        <div className="flex items-center space-x-1">
+          <span className="w-6 h-6 flex items-center justify-center rounded-full bg-gray-300 text-gray-700">
+            3
+          </span>
+          <span className="text-gray-600">Визуалдау</span>
+        </div>
       </div>
 
-      {/* Панель фильтров */}
-      <Card className="bg-white shadow dark:bg-gray-800">
+      {/* Панель фильтра */}
+      <Card>
         <CardHeader>
-          <CardTitle>Аналитика сүзгісі</CardTitle>
+          <CardTitle>
+            <Filter size={20} className="text-indigo-600" />
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-            {/* Глобальный поиск */}
+          {/* Поиск, оборудование, даты */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="block mb-1">Іздеу</label>
+              <label className="block mb-1 text-sm">Іздеу</label>
               <Input
-                value={globalQuery}
-                onChange={(e) => setGlobalQuery(e.target.value)}
+                value={globalSearch}
+                onChange={(e) => setGlobalSearch(e.target.value)}
                 placeholder="Жалпы іздеу..."
-                className="w-full"
               />
             </div>
-            {/* Мультивыбор оборудования */}
             <div>
-              <label className="block mb-1">Жабдық</label>
+              <label className="block mb-1 text-sm">Жабдық</label>
               <select
                 multiple
-                value={equipmentFilter}
+                value={selectedEquip}
                 onChange={(e) =>
-                  setEquipmentFilter(
+                  setSelectedEquip(
                     Array.from(e.target.selectedOptions, (o) => o.value)
                   )
                 }
-                className="w-full h-24 border rounded px-2 py-1 bg-white dark:bg-gray-700 dark:text-white"
+                className="w-full h-20 border rounded"
               >
                 {Array.from(
                   new Set(data.map((r) => r[headers.indexOf("Жабдық")]))
@@ -179,35 +203,32 @@ export default function AnalyticsFilter() {
                 ))}
               </select>
             </div>
-            {/* Даты */}
             <div>
-              <label className="block mb-1">Күннен</label>
+              <label className="block mb-1 text-sm">Күннен</label>
               <Input
                 type="date"
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
-                className="w-full"
               />
             </div>
             <div>
-              <label className="block mb-1">Күнге дейін</label>
+              <label className="block mb-1 text-sm">Күнге дейін</label>
               <Input
                 type="date"
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
-                className="w-full"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
-            {/* Фильтр по колонке */}
-            <div>
-              <label className="block mb-1">Баган</label>
+          {/* Фильтр по колонке */}
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="flex-1 min-w-[150px]">
+              <label className="block mb-1 text-sm">Баған</label>
               <select
                 value={colIndex}
-                onChange={(e) => setColIndex(Number(e.target.value))}
-                className="w-full border rounded px-2 py-1 bg-white dark:bg-gray-700 dark:text-white"
+                onChange={(e) => setColIndex(+e.target.value)}
+                className="w-full border rounded"
               >
                 {headers.map((h, i) => (
                   <option key={i} value={i}>
@@ -216,13 +237,12 @@ export default function AnalyticsFilter() {
                 ))}
               </select>
             </div>
-            {/* Оператор */}
-            <div>
-              <label className="block mb-1">Оператор</label>
+            <div className="flex-1 min-w-[150px]">
+              <label className="block mb-1 text-sm">Оператор</label>
               <select
                 value={operator}
                 onChange={(e) => setOperator(e.target.value)}
-                className="w-full border rounded px-2 py-1 bg-white dark:bg-gray-700 dark:text-white"
+                className="w-full border rounded"
               >
                 <option value="contains">содержит</option>
                 <option value="equals">=</option>
@@ -230,26 +250,23 @@ export default function AnalyticsFilter() {
                 <option value="lt">&lt;</option>
               </select>
             </div>
-            {/* Значение */}
-            <div className="md:col-span-2">
-              <label className="block mb-1">Мән</label>
+            <div className="flex-1 min-w-[150px]">
+              <label className="block mb-1 text-sm">Мән</label>
               <Input
                 value={filterValue}
                 onChange={(e) => setFilterValue(e.target.value)}
-                placeholder="Фильтр мәні"
-                className="w-full"
+                placeholder="Мән..."
               />
             </div>
-            {/* Кнопки */}
-            <div className="flex space-x-2">
-              <Button className={ACCENT} onClick={() => {}}>
+            <div className="flex space-x-2 pb-1">
+              <Button className="bg-indigo-600 hover:bg-indigo-700 text-white">
                 Қолдану
               </Button>
               <Button
                 variant="outline"
                 onClick={() => {
-                  setGlobalQuery("");
-                  setEquipmentFilter([]);
+                  setGlobalSearch("");
+                  setSelectedEquip([]);
                   setFromDate("");
                   setToDate("");
                   setFilterValue("");
@@ -259,40 +276,34 @@ export default function AnalyticsFilter() {
               </Button>
             </div>
           </div>
-
-          {/* Смена видимости колонок */}
-          <div className="flex flex-wrap gap-3 pt-2 border-t">
-            {headers.map((h, i) => (
-              <label key={i} className="inline-flex items-center space-x-1">
-                <input
-                  type="checkbox"
-                  checked={visibleCols[i]}
-                  onChange={() => {
-                    const c = [...visibleCols];
-                    c[i] = !c[i];
-                    setVisibleCols(c);
-                  }}
-                  className="h-4 w-4 accent-blue-600"
-                />
-                <span className="text-sm">{h}</span>
-              </label>
-            ))}
-          </div>
         </CardContent>
       </Card>
 
-      {/* Таблица */}
-      <div className="overflow-x-auto">
-        <div className="min-w-[900px] overflow-y-auto max-h-[60vh] bg-white dark:bg-gray-800 rounded shadow">
-          <table className="w-full table-auto text-sm">
-            <thead className="sticky top-0 bg-gray-100 dark:bg-gray-700">
+      {/* Результаты + Fullscreen */}
+      <div className="relative">
+        <button
+          onClick={toggleFullscreen}
+          className="absolute top-2 right-2 z-10 p-1 bg-white rounded shadow hover:bg-gray-100"
+          title={
+            isFullscreen ? "Выйти из полноэкранного" : "Полноэкранный режим"
+          }
+        >
+          {isFullscreen ? "✕" : "⛶"}
+        </button>
+        <div
+          ref={tableContainerRef}
+          className="border rounded overflow-auto max-h-[50vh] transition-all duration-300"
+          style={isFullscreen ? { height: "100vh", maxHeight: "100vh" } : {}}
+        >
+          <table className="min-w-full text-sm">
+            <thead className="sticky top-0 bg-gray-100">
               <tr>
                 {headers.map(
                   (h, i) =>
                     visibleCols[i] && (
                       <th
                         key={i}
-                        className="px-4 py-2 text-left font-medium cursor-pointer"
+                        className="px-2 py-1 text-left cursor-pointer"
                         onClick={() => {
                           if (sortCol === i) setSortAsc(!sortAsc);
                           else {
@@ -301,73 +312,72 @@ export default function AnalyticsFilter() {
                           }
                         }}
                       >
-                        {h}{" "}
-                        {sortCol === i && <span>{sortAsc ? "↑" : "↓"}</span>}
+                        {h} {sortCol === i ? (sortAsc ? "↑" : "↓") : ""}
                       </th>
                     )
                 )}
-                <th className="px-4 py-2 sticky right-0 bg-gray-100 dark:bg-gray-700">
-                  Әрекет
-                </th>
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={
-                      headers.filter((_, i) => visibleCols[i]).length + 1
-                    }
-                    className="p-4 text-center text-gray-500 dark:text-gray-400"
-                  >
-                    Жазбалар табылмады
-                  </td>
-                </tr>
-              ) : (
+              {filtered.length ? (
                 filtered.map((row, ri) => (
                   <tr
                     key={ri}
-                    className="odd:bg-gray-50 even:bg-white dark:odd:bg-gray-800 dark:even:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
+                    className="odd:bg-white even:bg-gray-50 hover:bg-gray-100"
                   >
                     {row.map(
                       (cell, ci) =>
                         visibleCols[ci] && (
-                          <td key={ci} className="px-4 py-2 whitespace-nowrap">
+                          <td key={ci} className="px-2 py-1 whitespace-nowrap">
                             {cell}
                           </td>
                         )
                     )}
-                    <td className="px-4 py-2 sticky right-0 bg-white dark:bg-gray-800 flex space-x-2">
-                      <button className="text-blue-600 hover:underline">
-                        ✏️
-                      </button>
-                      <button className="text-red-500 hover:underline">
-                        🗑️
-                      </button>
-                    </td>
                   </tr>
                 ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan={visibleCols.filter(Boolean).length}
+                    className="p-4 text-center text-gray-500"
+                  >
+                    Жазбалар табылмады
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Действия */}
-      <div className="flex justify-end space-x-2">
-        <Button variant="outline" onClick={exportCSV}>
-          CSV экспорт
-        </Button>
+      {/* Нижняя панель с кнопками */}
+      <div className="flex justify-between items-center">
         <Button
-          className={ACCENT}
-          onClick={() =>
-            navigate("/analytics/visualize", {
-              state: { headers, data: filtered },
-            })
-          }
+          variant="ghost"
+          onClick={() => navigate("/analytics/upload")}
+          className="text-indigo-600 hover:text-indigo-800"
         >
-          Визуализация →
+          ← Жүктеу
         </Button>
+        <div className="space-x-2">
+          <Button variant="outline" onClick={exportCSV}>
+            CSV экспорт
+          </Button>
+          <Button
+            onClick={() =>
+              navigate("/analytics/visualize", {
+                state: {
+                  headers,
+                  data: filtered,
+                  metrics: headers.filter((_, i) => visibleCols[i]),
+                },
+              })
+            }
+            className="bg-indigo-600 hover:bg-indigo-700 text-white"
+          >
+            Визуалдау →
+          </Button>
+        </div>
       </div>
     </div>
   );

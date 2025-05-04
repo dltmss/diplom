@@ -2,6 +2,7 @@
 import React, { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Papa from "papaparse";
+import { useHistoryLog } from "../contexts/HistoryContext";
 import {
   Card,
   CardHeader,
@@ -15,16 +16,23 @@ import { UploadCloud } from "lucide-react";
 export default function AnalyticsUpload() {
   const navigate = useNavigate();
   const inputRef = useRef(null);
+  const { addEvent } = useHistoryLog();
 
   const [dragOver, setDragOver] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [percent, setPercent] = useState(0);
 
+  const reset = () => {
+    setSelectedFile(null);
+    setPercent(0);
+    if (inputRef.current) inputRef.current.value = "";
+  };
+
   const handleCsv = async (file) => {
     setSelectedFile(file);
     setPercent(0);
 
-    // FileReader для прогресса
+    // Отслеживаем прогресс чтения
     const reader = new FileReader();
     reader.onprogress = (e) => {
       if (e.total > 0) setPercent(Math.round((e.loaded / e.total) * 100));
@@ -32,7 +40,6 @@ export default function AnalyticsUpload() {
     reader.onloadend = () => setPercent(100);
     reader.readAsArrayBuffer(file);
 
-    // Парсим только CSV
     try {
       await new Promise((res, rej) =>
         Papa.parse(file, {
@@ -42,7 +49,18 @@ export default function AnalyticsUpload() {
             if (data.length < 2) return rej(new Error("Деректер табылмады"));
             const headers = data[0];
             const rows = data.slice(1);
-            navigate("/analytics/filter", { state: { headers, data: rows } });
+
+            // Логируем событие загрузки CSV
+            addEvent({
+              type: "Upload CSV",
+              params: { file: file.name },
+              file: file.name,
+            });
+
+            // Навигируем на страницу фильтрации
+            navigate("/analytics/filter", {
+              state: { headers, data: rows },
+            });
             res();
           },
           error: (err) => rej(err),
@@ -77,12 +95,6 @@ export default function AnalyticsUpload() {
       return;
     }
     handleCsv(file);
-  };
-
-  const reset = () => {
-    setSelectedFile(null);
-    setPercent(0);
-    if (inputRef.current) inputRef.current.value = "";
   };
 
   return (
@@ -120,6 +132,7 @@ export default function AnalyticsUpload() {
             Аналитикаға CSV жүктеңіз
           </CardTitle>
         </CardHeader>
+
         <CardContent className="space-y-6">
           {/* Dropzone */}
           <div
@@ -131,8 +144,7 @@ export default function AnalyticsUpload() {
             onDragLeave={() => setDragOver(false)}
             onDrop={onDrop}
             className={`
-              border-2 border-dashed rounded-lg p-10 text-center cursor-pointer select-none
-              transition-colors
+              border-2 border-dashed rounded-lg p-10 text-center cursor-pointer select-none transition-colors
               ${
                 dragOver
                   ? "border-blue-600 bg-blue-50 dark:bg-gray-700/50"
@@ -178,7 +190,7 @@ export default function AnalyticsUpload() {
             </div>
           )}
 
-          {/* Primary button */}
+          {/* Фallback кнопка */}
           {!selectedFile && (
             <Button
               className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-colors"

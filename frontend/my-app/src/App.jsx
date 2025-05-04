@@ -9,6 +9,11 @@ import {
 } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
+// провайдеры контекстов
+import { AuthProvider } from "./contexts/AuthContext.jsx";
+import { HistoryProvider } from "./contexts/HistoryContext.jsx";
+import { MonitoringProvider } from "./contexts/MonitoringContext.jsx";
+
 // public pages
 import Landing from "./pages/Landing.jsx";
 import Login from "./pages/Login.jsx";
@@ -25,6 +30,7 @@ import History from "./pages/History.jsx";
 import Settings from "./pages/Settings.jsx";
 import Profile from "./pages/Profile.jsx";
 
+// layout components
 import Sidebar from "./components/Sidebar.jsx";
 import Topbar from "./components/Topbar.jsx";
 
@@ -32,7 +38,7 @@ export default function App() {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const toggleSidebar = () => setSidebarOpen((o) => !o);
 
-  // global settings for Settings page
+  // глобальные настройки, которые живут в localStorage
   const [settings, setSettings] = useState({
     idleTimeout: 15,
     fontFamily: "sans-serif",
@@ -43,16 +49,17 @@ export default function App() {
     accentColor: "#4f46e5",
   });
 
-  // load saved settings
+  // загрузка сохранённых настроек
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem("settings") || "{}");
     setSettings((s) => ({ ...s, ...saved }));
   }, []);
 
-  // apply & persist settings
+  // применение и сохранение настроек при их изменении
   useEffect(() => {
     const { fontFamily, fontSize, highContrast, theme, language, accentColor } =
       settings;
+
     document.documentElement.style.setProperty("--font-family", fontFamily);
     document.documentElement.style.setProperty(
       "--font-size-base",
@@ -62,49 +69,61 @@ export default function App() {
     document.documentElement.classList.toggle("dark", theme === "dark");
     document.documentElement.lang = language;
     document.documentElement.style.setProperty("--accent-color", accentColor);
+
     localStorage.setItem("settings", JSON.stringify(settings));
   }, [settings]);
 
   return (
-    <Router>
-      <Toaster position="top-right" />
+    <AuthProvider>
+      <MonitoringProvider>
+        <HistoryProvider>
+          <Router>
+            <Toaster position="top-right" />
 
-      <Routes>
-        {/* 1) Public */}
-        <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+            <Routes>
+              {/* 1) Публичные страницы */}
+              <Route path="/" element={<Landing />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
 
-        {/* 2) PrivateLayout для всех защищённых страниц */}
-        <Route
-          element={
-            <PrivateLayout
-              isOpen={isSidebarOpen}
-              toggleSidebar={toggleSidebar}
-            />
-          }
-        >
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="monitoring" element={<Monitoring />} />
-          <Route path="finance" element={<Finance />} />
+              {/* 2) Приватный layout */}
+              <Route
+                element={
+                  <PrivateLayout
+                    isOpen={isSidebarOpen}
+                    toggleSidebar={toggleSidebar}
+                  />
+                }
+              >
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="monitoring" element={<Monitoring />} />
+                <Route path="finance" element={<Finance />} />
 
-          {/* Аналитика */}
-          <Route path="analytics/upload" element={<AnalyticsUpload />} />
-          <Route path="analytics/filter" element={<AnalyticsFilter />} />
-          <Route path="analytics/visualize" element={<AnalyticsVisualize />} />
+                {/* Аналитика */}
+                <Route path="analytics/upload" element={<AnalyticsUpload />} />
+                <Route path="analytics/filter" element={<AnalyticsFilter />} />
+                <Route
+                  path="analytics/visualize"
+                  element={<AnalyticsVisualize />}
+                />
 
-          <Route path="history" element={<History />} />
-          <Route
-            path="settings"
-            element={<Settings settings={settings} setSettings={setSettings} />}
-          />
-          <Route path="profile" element={<Profile />} />
-        </Route>
+                <Route path="history" element={<History />} />
+                <Route
+                  path="settings"
+                  element={
+                    <Settings settings={settings} setSettings={setSettings} />
+                  }
+                />
+                <Route path="profile" element={<Profile />} />
+              </Route>
 
-        {/* 3) Любой другой → Landing */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Router>
+              {/* 3) Всё прочее → на главную */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Router>
+        </HistoryProvider>
+      </MonitoringProvider>
+    </AuthProvider>
   );
 }
 

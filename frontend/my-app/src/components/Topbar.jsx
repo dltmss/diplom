@@ -1,70 +1,92 @@
+// src/components/Topbar.jsx
 import React, { useState, useEffect } from "react";
-import { Bell, Moon, Sun, User, Menu } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { useLocation } from "react-router-dom";
+import { Menu, Moon, Sun } from "lucide-react";
 
 export default function Topbar({ toggleSidebar }) {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const location = useLocation();
 
+  // тема
+  const [isDarkMode, setIsDarkMode] = useState(() =>
+    document.documentElement.classList.contains("dark")
+  );
   useEffect(() => {
-    const html = document.documentElement;
-    if (isDarkMode) {
-      html.classList.add("dark");
-    } else {
-      html.classList.remove("dark");
-    }
+    document.documentElement.classList.toggle("dark", isDarkMode);
   }, [isDarkMode]);
 
+  // динамический заголовок
+  const titles = {
+    "/dashboard": "Басты бет",
+    "/monitoring": "Мониторинг",
+    "/analytics": "Аналитика",
+    "/history": "Дерек тарихы",
+    "/finance": "Қаражаттар",
+    "/settings": "Жүйені баптау",
+    "/profile": "Профиль",
+  };
+  const currentTitle =
+    Object.entries(titles).find(([path]) =>
+      location.pathname.startsWith(path)
+    )?.[1] || "";
+
   return (
-    <header className="flex items-center justify-between px-6 py-4 bg-white dark:bg-gray-800 shadow transition-colors duration-300">
-      {/* Кнопка открытия Sidebar + название панели */}
-      <div className="flex items-center space-x-4">
-        <button
-          onClick={toggleSidebar}
-          className="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-all duration-300 transform hover:scale-110 active:scale-95"
+    <header
+      className="
+        flex items-center justify-between
+        px-8 py-3
+        bg-gradient-to-r from-indigo-50 to-white dark:from-gray-900 dark:to-gray-800
+        border-b border-gray-200 dark:border-gray-700
+        shadow-lg
+        transition-colors duration-300
+      "
+    >
+      {/* Sidebar toggle */}
+      <button
+        onClick={toggleSidebar}
+        type="button"
+        className="
+          p-2 bg-white dark:bg-gray-700
+          rounded-full
+          shadow hover:shadow-xl
+          transition-shadow duration-200
+        "
+      >
+        <Menu className="w-6 h-6 text-indigo-600 dark:text-indigo-300" />
+      </button>
+
+      {/* Centered title with pill */}
+      <div className="flex-1 flex justify-center">
+        <span
+          className="
+            px-5 py-1
+            bg-indigo-100 dark:bg-indigo-700
+            text-indigo-700 dark:text-indigo-200
+            font-semibold text-lg
+            rounded-full
+            transition-colors duration-300
+          "
         >
-          <Menu className="w-6 h-6" />
-        </button>
-
-        <div className="text-xl font-bold text-gray-800 dark:text-white transition-colors duration-300">
-          Dashboard
-        </div>
+          {currentTitle}
+        </span>
       </div>
 
-      {/* Поиск */}
-      <div className="flex-1 mx-4">
-        <Input
-          type="text"
-          placeholder="Поиск..."
-          className="max-w-md bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400 border-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
-        />
-      </div>
-
-      {/* Иконки справа */}
-      <div className="flex items-center space-x-4">
-        {/* Уведомления */}
-        <button className="relative text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-all duration-300 transform hover:scale-110 active:scale-95">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-gray-800 animate-ping" />
-          <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-gray-800" />
-        </button>
-
-        {/* Переключатель темы */}
-        <button
-          onClick={() => setIsDarkMode(!isDarkMode)}
-          className="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-all duration-300 transform hover:scale-110 active:scale-95"
-        >
-          {isDarkMode ? (
-            <Sun className="w-5 h-5" />
-          ) : (
-            <Moon className="w-5 h-5" />
-          )}
-        </button>
-
-        {/* Профиль пользователя */}
-        <button className="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-all duration-300 transform hover:scale-110 active:scale-95">
-          <User className="w-5 h-5" />
-        </button>
-      </div>
+      {/* Theme switch */}
+      <button
+        onClick={() => setIsDarkMode((m) => !m)}
+        type="button"
+        className="
+          p-2 bg-white dark:bg-gray-700
+          rounded-full
+          shadow hover:shadow-xl
+          transition-shadow duration-200
+        "
+      >
+        {isDarkMode ? (
+          <Sun className="w-6 h-6 text-yellow-400" />
+        ) : (
+          <Moon className="w-6 h-6 text-gray-600" />
+        )}
+      </button>
     </header>
   );
 }
