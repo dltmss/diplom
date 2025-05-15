@@ -1,7 +1,6 @@
 // src/pages/History.jsx
 import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
 import {
   Card,
   CardHeader,
@@ -18,8 +17,9 @@ import {
   Trash2,
 } from "lucide-react";
 import { useHistoryLog } from "../contexts/HistoryContext";
+import { useSettings } from "../contexts/SettingsContext.jsx";
 
-// Англ. ключи для логики + метки и иконки — на казахском
+// Типы событий для KPI и отображения
 const EVENT_TYPES = [
   {
     key: "Upload CSV",
@@ -50,8 +50,10 @@ const EVENT_TYPES = [
 export default function History() {
   const navigate = useNavigate();
   const { events: records, clearHistory, deleteEvent } = useHistoryLog();
+  const { settings } = useSettings();
+  const { timeFormat, language } = settings;
 
-  // фильтры
+  // --- Фильтры ---
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -62,9 +64,9 @@ export default function History() {
     }, {})
   );
 
-  // отфильтрованные записи
+  // Фильтрация записей
   const filtered = useMemo(() => {
-    return (records || []).filter((r) => {
+    return records.filter((r) => {
       const d = r.timestamp.slice(0, 10);
       if (dateFrom && d < dateFrom) return false;
       if (dateTo && d > dateTo) return false;
@@ -72,25 +74,26 @@ export default function History() {
       if (
         search &&
         !JSON.stringify(r).toLowerCase().includes(search.toLowerCase())
-      )
+      ) {
         return false;
+      }
       return true;
     });
   }, [records, search, dateFrom, dateTo, typeFilter]);
 
-  // KPI-счётчики
+  // KPI‑счётчики
   const stats = useMemo(() => {
     const cnt = {};
     EVENT_TYPES.forEach(({ key }) => (cnt[key] = 0));
-    (records || []).forEach((r) => {
+    records.forEach((r) => {
       if (cnt[r.type] != null) cnt[r.type]++;
     });
     return cnt;
   }, [records]);
 
-  // экспорт всего лога в CSV
+  // Экспорт лога в CSV
   const exportLogCSV = () => {
-    if (!records?.length) return;
+    if (!records.length) return;
     const header = [
       "Уақыты",
       "Пайдаланушы",
@@ -115,7 +118,7 @@ export default function History() {
     URL.revokeObjectURL(url);
   };
 
-  // повторить действие
+  // Повторить действие
   const rerun = (rec) => {
     switch (rec.type) {
       case "Upload CSV":
@@ -140,202 +143,193 @@ export default function History() {
     }
   };
 
+  // Функция форматирования даты/времени по настройкам
+  const formatTimestamp = (isoString) => {
+    const dt = new Date(isoString);
+    const opts = {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: timeFormat === "12",
+    };
+    // используем язык из настроек, по умолчанию 'kk-KZ'
+    return new Intl.DateTimeFormat(language || "kk-KZ", opts).format(dt);
+  };
+
   return (
-    <AnimatePresence exitBeforeEnter>
-      <motion.div
-        key="history"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        transition={{ duration: 0.3 }}
-        className="p-4 space-y-4 bg-gray-50 dark:bg-gray-900"
-      >
-        {/* KPI-карточки */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {EVENT_TYPES.map(({ key, label, icon: Icon, color }) => (
-            <Card key={key} className="shadow rounded-lg overflow-hidden">
-              <CardHeader className="bg-white dark:bg-gray-800">
-                <CardTitle className="flex items-center text-sm text-gray-700 dark:text-gray-200">
-                  <Icon className={`w-5 h-5 ${color}`} />
-                  <span className="ml-2">{label}</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="bg-white dark:bg-gray-800 p-3">
-                <div className="text-2xl font-extrabold text-gray-900 dark:text-gray-100">
-                  {stats[key]}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Фильтры */}
-        <Card className="shadow rounded-lg bg-white dark:bg-gray-800">
-          <CardHeader>
-            <CardTitle>Фильтрлер</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block mb-1 text-sm text-gray-700 dark:text-gray-300">
-                Іздеу
-              </label>
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Мысалы: admin"
-                className="border-gray-300 dark:border-gray-600"
-              />
-            </div>
-            <div>
-              <label className="block mb-1 text-sm text-gray-700 dark:text-gray-300">
-                Басталатын күн
-              </label>
-              <Input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="border-gray-300 dark:border-gray-600"
-              />
-            </div>
-            <div>
-              <label className="block mb-1 text-sm text-gray-700 dark:text-gray-300">
-                Аяқталатын күн
-              </label>
-              <Input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="border-gray-300 dark:border-gray-600"
-              />
-            </div>
-            <div>
-              <p className="mb-1 text-sm text-gray-700 dark:text-gray-300">
-                Іс-әрекет түрі
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {EVENT_TYPES.map(({ key, label }) => (
-                  <label
-                    key={key}
-                    className="inline-flex items-center space-x-1 text-sm text-gray-800 dark:text-gray-200"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={typeFilter[key]}
-                      onChange={() =>
-                        setTypeFilter((f) => ({ ...f, [key]: !f[key] }))
-                      }
-                      className="accent-blue-600"
-                    />
-                    <span>{label}</span>
-                  </label>
-                ))}
+    <div className="p-4 space-y-4 bg-gray-50 dark:bg-gray-900">
+      {/* KPI-карточки */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {EVENT_TYPES.map(({ key, label, icon: Icon, color }) => (
+          <Card key={key} className="shadow rounded-lg overflow-hidden">
+            <CardHeader className="bg-white dark:bg-gray-800">
+              <CardTitle className="flex items-center text-sm text-gray-700 dark:text-gray-200">
+                <Icon className={`${color} w-5 h-5`} />
+                <span className="ml-2">{label}</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="bg-white dark:bg-gray-800 p-3">
+              <div className="text-2xl font-extrabold text-gray-900 dark:text-gray-100">
+                {stats[key]}
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* история или пусто */}
-        {!records?.length ? (
-          <Card className="text-center p-6 bg-white dark:bg-gray-800 shadow rounded-lg">
-            <p className="text-gray-500 dark:text-gray-400">
-              Тарих әлі бос. Мұнда әрекеттеріңіз көрсетіледі.
-            </p>
-            <Button
-              onClick={() => navigate("/analytics/upload")}
-              className="mt-4 bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              CSV жүктеуге өту
-            </Button>
+            </CardContent>
           </Card>
-        ) : (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-4"
-          >
-            <div className="overflow-auto max-h-[55vh] bg-white dark:bg-gray-800 shadow rounded-lg">
-              <table className="min-w-full text-sm">
-                <thead className="bg-gray-100 dark:bg-gray-700">
-                  <tr>
-                    {[
-                      "Күн/Уақыт",
-                      "Пайдаланушы",
-                      "Іс-әрекет",
-                      "Параметрлер",
-                      "Файл",
-                      "Әрекет",
-                    ].map((h) => (
-                      <th
-                        key={h}
-                        className="px-3 py-2 text-left text-gray-600 dark:text-gray-300"
-                      >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((r) => (
-                    <tr
-                      key={r.id}
-                      className="odd:bg-white even:bg-gray-50 dark:even:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
-                    >
-                      <td className="px-3 py-2 whitespace-nowrap text-gray-800 dark:text-gray-200">
-                        {new Date(r.timestamp).toLocaleString("kk-KZ")}
-                      </td>
-                      <td className="px-3 py-2">{r.user}</td>
-                      <td className="px-3 py-2">
-                        {EVENT_TYPES.find((e) => e.key === r.type)?.label ||
-                          r.type}
-                      </td>
-                      <td className="px-3 py-2 text-gray-700 dark:text-gray-300">
-                        <pre className="text-xs">
-                          {JSON.stringify(r.params, null, 2)}
-                        </pre>
-                      </td>
-                      <td className="px-3 py-2">{r.file || "—"}</td>
-                      <td className="px-3 py-2 flex gap-2">
-                        <button
-                          onClick={() => rerun(r)}
-                          title="Қайта орындау"
-                          className="p-1 hover:text-blue-600"
-                        >
-                          <ArrowRightCircle size={18} />
-                        </button>
-                        <button
-                          onClick={() => deleteEvent(r.id)}
-                          title="Жою"
-                          className="p-1 hover:text-red-600"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+        ))}
+      </div>
 
-            {/* Очистить всё и экспорт лога */}
-            <div className="flex justify-between items-center">
-              <Button
-                onClick={clearHistory}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                Барлығын тазалау
-              </Button>
-              <Button
-                onClick={exportLogCSV}
-                className="flex items-center bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <DownloadIcon size={16} className="mr-1" />
-                Логты CSV-ке экспорттау
-              </Button>
+      {/* Фильтры */}
+      <Card className="shadow rounded-lg bg-white dark:bg-gray-800">
+        <CardHeader>
+          <CardTitle className="text-gray-800 dark:text-gray-200">
+            Сүзгілер
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label className="block mb-1 text-sm text-gray-700 dark:text-gray-300">
+              Іздеу
+            </label>
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Мысалы: admin"
+              className="border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            />
+          </div>
+          <div>
+            <label className="block mb-1 text-sm text-gray-700 dark:text-gray-300">
+              Басталатын күн
+            </label>
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            />
+          </div>
+          <div>
+            <label className="block mb-1 text-sm text-gray-700 dark:text-gray-300">
+              Аяқталатын күн
+            </label>
+            <Input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            />
+          </div>
+          <div>
+            <p className="mb-1 text-sm text-gray-700 dark:text-gray-300">
+              Іс-әрекет түрі
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {EVENT_TYPES.map(({ key, label }) => (
+                <label
+                  key={key}
+                  className="inline-flex items-center space-x-1 text-sm text-gray-800 dark:text-gray-200"
+                >
+                  <input
+                    type="checkbox"
+                    checked={typeFilter[key]}
+                    onChange={() =>
+                      setTypeFilter((f) => ({ ...f, [key]: !f[key] }))
+                    }
+                    className="accent-blue-600"
+                  />
+                  <span>{label}</span>
+                </label>
+              ))}
             </div>
-          </motion.div>
-        )}
-      </motion.div>
-    </AnimatePresence>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Таблица истории */}
+      <div className="overflow-auto max-h-[55vh] bg-white dark:bg-gray-800 shadow rounded-lg">
+        <table className="min-w-full text-sm">
+          <thead className="bg-gray-100 dark:bg-gray-700">
+            <tr>
+              {[
+                "Күн/Уақыт",
+                "Пайдаланушы",
+                "Іс-әрекет",
+                "Параметрлер",
+                "Файл",
+                "Әрекет",
+              ].map((h) => (
+                <th
+                  key={h}
+                  className="px-3 py-2 text-left text-gray-600 dark:text-gray-300"
+                >
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((r) => (
+              <tr
+                key={r.id}
+                className="odd:bg-white even:bg-gray-50 dark:odd:bg-gray-800 dark:even:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
+              >
+                <td className="px-3 py-2 text-gray-800 dark:text-gray-100">
+                  {formatTimestamp(r.timestamp)}
+                </td>
+                <td className="px-3 py-2 text-gray-800 dark:text-gray-100">
+                  {r.user}
+                </td>
+                <td className="px-3 py-2 text-gray-800 dark:text-gray-100">
+                  {EVENT_TYPES.find((e) => e.key === r.type)?.label || r.type}
+                </td>
+                <td className="px-3 py-2 text-gray-700 dark:text-gray-200">
+                  <pre className="text-xs whitespace-pre-wrap break-words dark:text-gray-200">
+                    {JSON.stringify(r.params, null, 2)}
+                  </pre>
+                </td>
+                <td className="px-3 py-2 text-gray-800 dark:text-gray-100">
+                  {r.file || "—"}
+                </td>
+                <td className="px-3 py-2 flex gap-2">
+                  <button
+                    onClick={() => rerun(r)}
+                    title="Қайта орындау"
+                    className="p-1 text-gray-800 dark:text-gray-200 hover:text-blue-600"
+                  >
+                    <ArrowRightCircle size={18} />
+                  </button>
+                  <button
+                    onClick={() => deleteEvent(r.id)}
+                    title="Жою"
+                    className="p-1 text-gray-800 dark:text-gray-200 hover:text-red-600"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Управление логом */}
+      <div className="flex justify-between items-center mt-4">
+        <Button
+          onClick={clearHistory}
+          className="bg-blue-600 hover:bg-blue-700 text-white"
+        >
+          Барлығын тазалау
+        </Button>
+        <Button
+          onClick={exportLogCSV}
+          className="flex items-center bg-blue-600 hover:bg-blue-700 text-white"
+        >
+          <DownloadIcon size={16} className="mr-1" />
+          Логты CSV-ке экспорттау
+        </Button>
+      </div>
+    </div>
   );
 }

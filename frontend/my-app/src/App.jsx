@@ -9,10 +9,15 @@ import {
 } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
-// провайдеры контекстов
+// i18n-config for react-i18next
+import "./i18n";
+import { useTranslation } from "react-i18next";
+
+// our context providers
+import { SettingsProvider, useSettings } from "./contexts/SettingsContext.jsx";
 import { AuthProvider } from "./contexts/AuthContext.jsx";
-import { HistoryProvider } from "./contexts/HistoryContext.jsx";
 import { MonitoringProvider } from "./contexts/MonitoringContext.jsx";
+import { HistoryProvider } from "./contexts/HistoryContext.jsx";
 
 // public pages
 import Landing from "./pages/Landing.jsx";
@@ -34,44 +39,22 @@ import Profile from "./pages/Profile.jsx";
 import Sidebar from "./components/Sidebar.jsx";
 import Topbar from "./components/Topbar.jsx";
 
-export default function App() {
+/**
+ * The core of the app, where useSettings is already available
+ */
+function App() {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const toggleSidebar = () => setSidebarOpen((o) => !o);
 
-  // глобальные настройки, которые живут в localStorage
-  const [settings, setSettings] = useState({
-    idleTimeout: 15,
-    fontFamily: "sans-serif",
-    language: "ru",
-    fontSize: 16,
-    highContrast: false,
-    theme: "light",
-    accentColor: "#4f46e5",
-  });
+  // pull current settings from context
+  const { settings } = useSettings();
+  const { i18n } = useTranslation();
 
-  // загрузка сохранённых настроек
+  // on language change, update html lang and i18next
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("settings") || "{}");
-    setSettings((s) => ({ ...s, ...saved }));
-  }, []);
-
-  // применение и сохранение настроек при их изменении
-  useEffect(() => {
-    const { fontFamily, fontSize, highContrast, theme, language, accentColor } =
-      settings;
-
-    document.documentElement.style.setProperty("--font-family", fontFamily);
-    document.documentElement.style.setProperty(
-      "--font-size-base",
-      `${fontSize}px`
-    );
-    document.documentElement.classList.toggle("high-contrast", highContrast);
-    document.documentElement.classList.toggle("dark", theme === "dark");
-    document.documentElement.lang = language;
-    document.documentElement.style.setProperty("--accent-color", accentColor);
-
-    localStorage.setItem("settings", JSON.stringify(settings));
-  }, [settings]);
+    document.documentElement.lang = settings.language;
+    i18n.changeLanguage(settings.language);
+  }, [settings.language, i18n]);
 
   return (
     <AuthProvider>
@@ -81,12 +64,12 @@ export default function App() {
             <Toaster position="top-right" />
 
             <Routes>
-              {/* 1) Публичные страницы */}
+              {/* 1) Public pages */}
               <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
 
-              {/* 2) Приватный layout */}
+              {/* 2) Private layout */}
               <Route
                 element={
                   <PrivateLayout
@@ -98,26 +81,18 @@ export default function App() {
                 <Route path="dashboard" element={<Dashboard />} />
                 <Route path="monitoring" element={<Monitoring />} />
                 <Route path="finance" element={<Finance />} />
-
-                {/* Аналитика */}
                 <Route path="analytics/upload" element={<AnalyticsUpload />} />
                 <Route path="analytics/filter" element={<AnalyticsFilter />} />
                 <Route
                   path="analytics/visualize"
                   element={<AnalyticsVisualize />}
                 />
-
                 <Route path="history" element={<History />} />
-                <Route
-                  path="settings"
-                  element={
-                    <Settings settings={settings} setSettings={setSettings} />
-                  }
-                />
+                <Route path="settings" element={<Settings />} />
                 <Route path="profile" element={<Profile />} />
               </Route>
 
-              {/* 3) Всё прочее → на главную */}
+              {/* 3) All others → landing */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Router>
@@ -127,7 +102,9 @@ export default function App() {
   );
 }
 
-// Layout для приватной зоны
+/**
+ * Private area layout with sidebar and topbar
+ */
 function PrivateLayout({ isOpen, toggleSidebar }) {
   return (
     <div className="flex">
@@ -139,5 +116,17 @@ function PrivateLayout({ isOpen, toggleSidebar }) {
         </div>
       </main>
     </div>
+  );
+}
+
+/**
+ * Wrap everything in SettingsProvider at the very top level.
+ * Export RootApp as the entry point.
+ */
+export default function RootApp() {
+  return (
+    <SettingsProvider>
+      <App />
+    </SettingsProvider>
   );
 }

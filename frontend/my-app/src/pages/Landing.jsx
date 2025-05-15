@@ -1,20 +1,15 @@
 // src/pages/Landing.jsx
-
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Sun,
   BarChart3,
-  Zap,
+  Activity,
   FileText,
-  ChevronUp,
-  Briefcase,
-  GraduationCap,
-  Building,
   HelpCircle,
   ChevronDown,
-  Star,
+  ChevronUp,
 } from "lucide-react";
 
 export default function Landing() {
@@ -23,21 +18,17 @@ export default function Landing() {
   const [activeFaq, setActiveFaq] = useState(null);
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    const handleScroll = () => setShowScrollTop(window.scrollY > 300);
-    window.addEventListener("scroll", handleScroll);
-
-    const timer = setTimeout(() => setLoading(false), 1500);
-
+    window.scrollTo({ top: 0 });
+    const onScroll = () => setShowScrollTop(window.scrollY > 300);
+    window.addEventListener("scroll", onScroll);
+    const timer = setTimeout(() => setLoading(false), 800);
     return () => {
-      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("scroll", onScroll);
       clearTimeout(timer);
     };
   }, []);
 
-  const toggleFaq = (index) => {
-    setActiveFaq(activeFaq === index ? null : index);
-  };
+  const toggleFaq = (i) => setActiveFaq(activeFaq === i ? null : i);
 
   const faqData = [
     {
@@ -58,244 +49,160 @@ export default function Landing() {
 
   const features = [
     {
-      icon: <BarChart3 className="w-12 h-12 text-purple-600 mx-auto" />,
+      icon: <BarChart3 className="w-10 h-10 text-purple-600 mx-auto" />,
       title: "Деректерді визуализациялау",
       text: "Күрделі деректерді түсінікті әрі тартымды түрде бейнелеу. Интерактивті диаграммалар мен кестелер арқылы аналитикалық мәліметтерді нақты ұсыну.",
-      delay: 0.1,
+      bg: "from-purple-100 to-purple-50",
+      color: "text-purple-800",
     },
     {
-      icon: <Sun className="w-12 h-12 text-purple-600 mx-auto" />,
+      icon: <Sun className="w-10 h-10 text-blue-600 mx-auto" />,
       title: "Интуитивті интерфейс",
       text: "Қолданушыға ыңғайлы навигация, адаптивті дизайн және заманауи визуалды стиль жұмысты жеңіл етеді.",
-      delay: 0.2,
+      bg: "from-blue-100 to-blue-50",
+      color: "text-blue-800",
     },
     {
-      icon: <Zap className="w-12 h-12 text-purple-600 mx-auto" />,
-      title: "Жылдам өңдеу",
-      text: "Деректерді лезде өңдейді және нәтижелерді бір сәтте ұсынады. Уақыт үнемдеу — бұл жай артықшылық емес, ол тиімділіктің кепілі.",
-      delay: 0.3,
+      icon: <Activity className="w-10 h-10 text-green-600 mx-auto" />,
+      title: "Нақты уақыттағы мониторинг",
+      text: "Жабдықтарыңыздың жұмыс жағдайын кез келген уақытта қадағалаңыз – температура, хэшрейт және қуат тұтыну.",
+      bg: "from-green-100 to-green-50",
+      color: "text-green-800",
     },
     {
-      icon: <FileText className="w-12 h-12 text-purple-600 mx-auto" />,
+      icon: <FileText className="w-10 h-10 text-yellow-600 mx-auto" />,
       title: "Файлдарды экспорттау",
-      text: "Бір ғана батырма арқылы құжаттарды бірнеше форматта жүктей аласыз: PDF, Excel, CSV.",
-      delay: 0.4,
+      text: "Бір ғана батырма арқылы құжаттарды бірнеше форматта жүктей аласыз: CSV, PNG.",
+      bg: "from-yellow-100 to-yellow-50",
+      color: "text-yellow-800",
     },
   ];
 
-  const audiences = [
+  const processSteps = [
     {
-      icon: <Briefcase className="w-12 h-12 mx-auto text-purple-600 mb-4" />,
-      title: "Бизнес және сарапшыларға",
-      text: "Талдау жасау және шешім қабылдау үшін кәсіби құралдар.",
+      title: "Жабдық мониторингі",
+      text: "Жабдықтардың жұмыс жағдайын мониторингтеу арқылы жүйенің тиімділігін қадағалаңыз.",
     },
     {
-      icon: (
-        <GraduationCap className="w-12 h-12 mx-auto text-purple-600 mb-4" />
-      ),
-      title: "Университеттер мен студенттерге",
-      text: "Ғылыми жобалар мен оқу процесіне арналған қолдау.",
+      title: "Деректерді талдау",
+      text: "Жиналған деректерді талдау және графиктер арқылы нәтижелерді визуализациялау.",
     },
     {
-      icon: <Building className="w-12 h-12 mx-auto text-purple-600 mb-4" />,
-      title: "Деректермен жұмыс істейтін ұйымдарға",
-      text: "Деректерді сақтау, өңдеу және талдау процесін оңтайландыру.",
+      title: "Есептерді генерациялау",
+      text: "Аналитикалық нәтижелерді PDF, Excel немесе CSV форматында экспорттаңыз.",
     },
   ];
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-purple-500 to-blue-600 text-white">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-tr from-purple-500 to-blue-400">
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ repeat: Infinity, duration: 1 }}
-        >
-          <svg
-            className="w-16 h-16"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8v8z"
-            />
-          </svg>
-        </motion.div>
+          className="w-16 h-16 border-4 border-white border-t-transparent rounded-full"
+        />
       </div>
     );
   }
 
   return (
-    <div className="bg-gradient-to-r from-purple-500 to-blue-600 text-white font-sans min-h-screen flex flex-col relative">
-      {/* Header */}
-      <header className="flex justify-between items-center p-8 max-w-7xl w-full mx-auto z-10">
-        <div className="text-2xl font-bold">Дипломдық жоба</div>
-        <nav className="flex items-center gap-4">
-          <Link
-            to="/login"
-            className="text-white hover:text-gray-200 text-base px-4 py-2 rounded-md transition"
-          >
-            Кіру
-          </Link>
-          <Link
-            to="/register"
-            className="bg-white text-purple-600 px-4 py-2 rounded-md font-medium hover:bg-gray-100 transition"
-          >
-            Тіркелу
-          </Link>
-        </nav>
-      </header>
+    <div className="antialiased scroll-smooth font-sans text-gray-900">
+      {/* HERO */}
+      <div className="relative bg-gradient-to-tr from-purple-600 to-blue-500 text-white">
+        {/* лёгкая тёмная наложка */}
+        <div className="absolute inset-0 bg-black bg-opacity-20"></div>
 
-      {/* Hero */}
-      <main className="flex flex-col items-center justify-center text-center flex-1 px-4 max-w-4xl mx-auto">
-        <motion.h1
-          initial={{ opacity: 0, y: -30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="text-4xl md:text-6xl font-extrabold mb-6 leading-tight"
-        >
-          Деректерді басқарудың заманауи шешімі
-        </motion.h1>
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1 }}
-          className="text-lg md:text-xl text-gray-200 max-w-2xl mb-12"
-        >
-          Біз сіздің бизнесіңізді дамытуға көмектесетін интуитивті және қауіпсіз
-          платформа ұсынамыз. Барлық аналитика мен визуализация бір жерде.
-        </motion.p>
-      </main>
+        <header className="relative max-w-6xl mx-auto p-6 flex items-center justify-between">
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
+            BCD Company
+          </h1>
+          <nav className="space-x-4 text-base">
+            <Link
+              to="/login"
+              className="hover:underline transition-colors duration-200"
+            >
+              Кіру
+            </Link>
+            <Link
+              to="/register"
+              className="px-4 py-2 bg-white text-purple-600 rounded-md font-medium hover:bg-gray-100 transition"
+            >
+              Тіркелу
+            </Link>
+          </nav>
+        </header>
 
-      {/* Features */}
-      <section className="bg-white text-gray-800 py-24 px-4">
-        <div className="max-w-7xl mx-auto text-center">
+        <div className="relative max-w-4xl mx-auto px-6 py-24 text-center">
           <motion.h2
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="text-3xl font-bold mb-16"
+            className="text-3xl md:text-5xl font-extrabold leading-snug drop-shadow"
           >
-            Негізгі мүмкіндіктер
+            Деректерді басқарудың заманауи шешімі
           </motion.h2>
-
-          <div className="grid md:grid-cols-4 gap-12">
-            {features.map((f, i) => (
-              <FeatureCard
-                key={i}
-                icon={f.icon}
-                title={f.title}
-                text={f.text}
-                delay={f.delay}
-              />
-            ))}
-          </div>
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1 }}
+            className="mt-4 text-base md:text-lg text-purple-200 leading-relaxed max-w-2xl mx-auto"
+          >
+            Бір ортада деректерді жинау, өңдеу және визуалдау.
+          </motion.p>
         </div>
-      </section>
+      </div>
 
-      {/* Target Audience */}
-      <section className="bg-white text-gray-800 py-24 px-4">
-        <div className="max-w-7xl mx-auto text-center">
-          <motion.h2
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className="text-3xl font-bold mb-16"
-          >
-            Кімдерге арналған?
-          </motion.h2>
-
-          <div className="grid md:grid-cols-3 gap-12">
-            {audiences.map((a, i) => (
+      {/* FEATURES */}
+      <section className="bg-white py-16">
+        <div className="max-w-6xl mx-auto text-center px-6">
+          <h3 className="text-2xl md:text-3xl font-semibold mb-8">
+            Негізгі мүмкіндіктер
+          </h3>
+          <div className="grid gap-8 md:grid-cols-4">
+            {features.map(({ icon, title, text, bg, color }, i) => (
               <motion.div
                 key={i}
-                whileHover={{ scale: 1.05 }}
-                transition={{ duration: 0.5 }}
-                className="bg-purple-50 p-8 rounded-xl shadow-md"
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: i * 0.1 }}
+                className={`p-6 bg-gradient-to-br ${bg} rounded-lg shadow-sm hover:shadow-md transition`}
               >
-                {a.icon}
-                <h3 className="text-xl font-semibold mb-2">{a.title}</h3>
-                <p className="text-gray-600">{a.text}</p>
+                {React.cloneElement(icon, {
+                  className: `w-10 h-10 mx-auto ${color}`,
+                })}
+                <h4 className="mt-4 text-lg font-medium text-gray-900">
+                  {title}
+                </h4>
+                <p className="mt-2 text-sm text-gray-700 leading-relaxed">
+                  {text}
+                </p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="bg-gray-50 text-gray-800 py-24 px-4">
-        <div className="max-w-7xl mx-auto text-center">
-          <motion.h2
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className="text-3xl font-bold mb-16"
-          >
-            Қолданушылар пікірі
-          </motion.h2>
-
-          <div className="grid md:grid-cols-3 gap-12">
-            {[
-              {
-                name: "Айбек М.",
-                role: "Бизнес аналитик",
-                image: "https://randomuser.me/api/portraits/men/32.jpg",
-                text: "Жүйе арқылы деректермен жұмыс істеу әлдеқайда оңай болды. Интерфейсі интуитивті және тез үйренуге болады.",
-              },
-              {
-                name: "Жанна К.",
-                role: "Маркетинг маманы",
-                image:
-                  "https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-4.0.3&auto=format&fit=crop&w=80&q=80",
-                text: "Мен визуализация құралдарын жақсы көремін! Барлық ақпарат қолжетімді және анық.",
-              },
-              {
-                name: "Санжар Т.",
-                role: "Деректер инженері",
-                image:
-                  "https://images.unsplash.com/photo-1599566150163-29194dcaad36?ixlib=rb-4.0.3&auto=format&fit=crop&w=80&q=80",
-                text: "Барлық мәлімет нақты, құрылымды және интерактивті түрде ұсынылады.",
-              },
-            ].map((t, i) => (
+      {/* PROCESS */}
+      <section className="bg-gray-50 py-20">
+        <div className="max-w-4xl mx-auto px-6">
+          <h3 className="text-2xl md:text-3xl font-semibold text-center mb-8">
+            Процесс қалай жұмыс істейді?
+          </h3>
+          <div className="grid gap-8 md:grid-cols-3">
+            {processSteps.map(({ title, text }, i) => (
               <motion.div
                 key={i}
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                whileHover={{ scale: 1.03 }}
-                transition={{ duration: 0.6, delay: 0.2 * i }}
-                className="bg-white rounded-xl p-8 shadow-md hover:shadow-xl transition-all duration-300"
+                transition={{ duration: 0.6, delay: i * 0.1 }}
+                className="text-center px-4"
               >
-                <img
-                  src={t.image}
-                  alt={t.name}
-                  className="w-16 h-16 rounded-full mx-auto mb-4"
-                />
-                <h3 className="text-lg font-semibold">{t.name}</h3>
-                <p className="text-sm text-purple-600">{t.role}</p>
-
-                <div className="flex justify-center mb-3 mt-3">
-                  {[...Array(5)].map((_, index) => (
-                    <Star
-                      key={index}
-                      className="w-5 h-5 text-yellow-400 fill-yellow-400 stroke-yellow-400 mx-0.5"
-                    />
-                  ))}
+                <div className="w-10 h-10 bg-purple-600 text-white rounded-full flex items-center justify-center mx-auto mb-3">
+                  {i + 1}
                 </div>
-
-                <p className="text-gray-600">{t.text}</p>
+                <h4 className="text-lg font-medium mb-2">{title}</h4>
+                <div className="w-8 h-0.5 bg-gray-300 mx-auto mb-3" />
+                <p className="text-sm text-gray-600 leading-relaxed">{text}</p>
               </motion.div>
             ))}
           </div>
@@ -303,98 +210,72 @@ export default function Landing() {
       </section>
 
       {/* FAQ */}
-      <section className="bg-gray-50 text-gray-800 py-24 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <motion.h2
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className="text-3xl font-bold mb-12"
-          >
+      <section className="bg-white py-20">
+        <div className="max-w-3xl mx-auto px-6">
+          <h3 className="text-2xl md:text-3xl font-semibold text-center mb-8">
             Жиі қойылатын сұрақтар
-          </motion.h2>
-
-          <div className="space-y-4 text-left">
-            {faqData.map((faq, index) => (
+          </h3>
+          <div className="space-y-3">
+            {faqData.map(({ question, answer }, i) => (
               <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 30 }}
+                key={i}
+                initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="border rounded-lg bg-white shadow hover:shadow-md transition cursor-pointer"
+                transition={{ duration: 0.4, delay: i * 0.1 }}
+                className="border border-gray-200 rounded-lg overflow-hidden"
               >
-                <div
-                  className="flex items-center justify-between p-4"
-                  onClick={() => toggleFaq(index)}
+                <button
+                  onClick={() => toggleFaq(i)}
+                  className="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <HelpCircle className="w-5 h-5 text-purple-600" />
-                    <h3 className="font-medium text-lg">{faq.question}</h3>
+                    <span className="text-gray-800 font-medium text-sm">
+                      {question}
+                    </span>
                   </div>
-                  {activeFaq === index ? (
-                    <ChevronUp className="w-5 h-5 text-gray-600" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-gray-600" />
-                  )}
-                </div>
-                {activeFaq === index && (
                   <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="px-4 pb-4 text-gray-700 overflow-hidden"
+                    animate={{ rotate: activeFaq === i ? 180 : 0 }}
+                    transition={{ type: "spring", stiffness: 300 }}
                   >
-                    {faq.answer}
+                    <ChevronDown className="w-5 h-5 text-gray-600" />
                   </motion.div>
-                )}
+                </button>
+                <AnimatePresence initial={false}>
+                  {activeFaq === i && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="px-4 py-3 bg-gray-50 text-gray-700 text-sm leading-relaxed"
+                    >
+                      {answer}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-gray-300 py-12 px-4 text-center">
-        <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-8 mb-8">
-          <div>
-            <h4 className="text-white text-lg mb-4">Байланыс</h4>
-            <p>Email: info@example.com</p>
-            <p>Телефон: +7 777 777 77 77</p>
-          </div>
-          <div>
-            <h4 className="text-white text-lg mb-4">Әлеуметтік желілер</h4>
-            <p>Telegram | WhatsApp | LinkedIn</p>
-          </div>
+      {/* FOOTER */}
+      <footer className="bg-gray-900 text-gray-300 py-6 text-center text-sm">
+        <div className="max-w-4xl mx-auto px-6 space-y-1">
+          <p>Email: info@bcdcompany.kz | Телефон: +7 777 777 77 77</p>
         </div>
       </footer>
 
+      {/* SCROLL TO TOP */}
       {showScrollTop && (
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="fixed bottom-6 right-6 bg-purple-600 text-white p-3 rounded-full shadow-lg hover:bg-purple-700 transition"
+          className="fixed bottom-6 right-6 p-3 bg-purple-600 text-white rounded-full shadow-lg hover:bg-purple-700 transition"
         >
           <ChevronUp className="w-5 h-5" />
         </button>
       )}
     </div>
-  );
-}
-
-function FeatureCard({ icon, title, text, delay }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.8, delay }}
-      whileHover={{ scale: 1.05 }}
-      className="bg-gradient-to-tr from-purple-100 to-purple-50 rounded-xl p-8 shadow-md hover:shadow-xl transition-all duration-300"
-    >
-      {icon}
-      <h3 className="text-xl font-semibold mb-3 mt-4">{title}</h3>
-      <p className="text-gray-600">{text}</p>
-    </motion.div>
   );
 }

@@ -32,7 +32,7 @@ export default function Monitoring() {
   const { addEvent } = useHistoryLog();
   const { entries, addEntry, updateEntry, deleteEntry } = useMonitoring();
 
-  // 1) Новые записи сверху + фильтры
+  // --- Фильтр по дате ---
   const [filter, setFilter] = useState("all");
   const filtered = useMemo(() => {
     if (filter === "all") return entries;
@@ -45,9 +45,10 @@ export default function Monitoring() {
       return d >= cutoff && d <= now;
     });
   }, [entries, filter]);
+  // Новые сначала
   const displayed = filtered.slice().reverse();
 
-  // Fullscreen API + «⛶»
+  // Fullscreen API
   const tableRef = useRef(null);
   const [isFs, setIsFs] = useState(false);
   useEffect(() => {
@@ -60,13 +61,13 @@ export default function Monitoring() {
     else document.exitFullscreen();
   };
 
-  // Оборудование
+  // Список оборудования
   const equipmentList = Array.from({ length: 10 }, (_, i) => ({
     code: `EQ-100${i + 1}`,
     name: `Жабдық ${i + 1}`,
   }));
 
-  // Форма
+  // Начальное состояние формы
   const initForm = {
     eq: equipmentList[0].code,
     date: "",
@@ -91,7 +92,7 @@ export default function Monitoring() {
   const [isExporting, setIsExporting] = useState(false);
   const [confirmDeleteIdx, setConfirmDeleteIdx] = useState(null);
 
-  // auto-clear toast
+  // Авто-скрытие тоста
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(""), 3000);
@@ -124,6 +125,7 @@ export default function Monitoring() {
     setForm((f) => ({ ...f, [name]: value }));
     if (errors[name]) setErrors((err) => ({ ...err, [name]: "" }));
   };
+
   const formatValue = (key, val) => {
     const n = parseFloat(val);
     if (isNaN(n)) return val;
@@ -215,30 +217,31 @@ export default function Monitoring() {
     });
   };
 
-  // «Бастауға оралу»
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
   return (
-    <div className="space-y-4 p-4 text-xs">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 dark:text-gray-100 p-4 space-y-4 text-xs">
       {/* Форма */}
-      <Card className="bg-white shadow">
+      <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition">
         <CardHeader>
-          <CardTitle className="text-sm">
+          <CardTitle className="text-sm text-gray-900 dark:text-gray-100">
             Мониторинг жазбасын қосу / өзгерту
           </CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+          {/* Селект оборудования */}
           <Select
             value={form.eq}
             onValueChange={(v) => setForm((f) => ({ ...f, eq: v }))}
-            className="h-7 text-xs bg-blue-600 hover:bg-blue-700 text-white"
           >
-            <SelectTrigger className="w-full h-7">
+            <SelectTrigger className="h-7 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-indigo-200">
               <SelectValue placeholder="Жабдық" />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectLabel className="text-xs">Жабдық</SelectLabel>
+                <SelectLabel className="text-xs dark:text-gray-300">
+                  Жабдық
+                </SelectLabel>
                 {equipmentList.map((eq) => (
                   <SelectItem key={eq.code} value={eq.code} className="text-xs">
                     {eq.name} ({eq.code})
@@ -247,19 +250,23 @@ export default function Monitoring() {
               </SelectGroup>
             </SelectContent>
           </Select>
+
+          {/* Дата */}
           <div>
             <Input
               type="date"
               name="date"
               value={form.date}
               onChange={handleChange}
-              className="h-7 text-xs"
+              className="h-7 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-400"
               aria-invalid={!!errors.date}
             />
             {errors.date && (
               <p className="text-red-600 text-xs">{errors.date}</p>
             )}
           </div>
+
+          {/* Остальные поля */}
           {formFields.map((f) => (
             <Input
               key={f.name}
@@ -267,19 +274,24 @@ export default function Monitoring() {
               value={form[f.name]}
               onChange={handleChange}
               placeholder={f.placeholder}
-              className="h-7 text-xs"
+              className="h-7 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-400"
             />
           ))}
+
+          {/* Кнопки */}
           <div className="col-span-full flex justify-end gap-2 mt-2">
             <Button
               onClick={saveRecord}
               disabled={isSaving}
               className="h-7 px-2 bg-blue-600 hover:bg-blue-700 text-white text-xs"
             >
-              {isSaving && (
+              {isSaving ? (
                 <Loader className="animate-spin w-3 h-3 mr-1 inline" />
+              ) : editIdx == null ? (
+                "Қосу"
+              ) : (
+                "Жаңарту"
               )}
-              {editIdx == null ? "Қосу" : "Жаңарту"}
             </Button>
             <Button
               variant="outline"
@@ -308,12 +320,12 @@ export default function Monitoring() {
       {/* Таблица */}
       <div
         ref={tableRef}
-        className="relative overflow-auto max-h-48 bg-white rounded shadow"
+        className="relative overflow-auto max-h-60 bg-white dark:bg-gray-800 rounded shadow"
         style={isFs ? { height: "100vh" } : {}}
       >
         <button
           onClick={toggleFs}
-          className="absolute top-2 right-2 z-10 p-1 bg-blue-600 hover:bg-blue-700 text-white rounded shadow"
+          className="absolute top-2 right-2 z-10 p-1 bg-blue-600 hover:bg-blue-700 text-white rounded shadow text-xs"
           title={isFs ? "Шығу" : "Толық экран"}
         >
           {isFs ? "✕" : "⛶"}
@@ -335,12 +347,12 @@ export default function Monitoring() {
               </th>
             </tr>
           </thead>
-          <tbody className="bg-gray-50 divide-y">
+          <tbody className="divide-y bg-gray-50 dark:bg-gray-700">
             {displayed.length === 0 ? (
               <tr>
                 <td
                   colSpan={columns.length + 1}
-                  className="p-4 text-center text-gray-500"
+                  className="p-4 text-center text-gray-500 dark:text-gray-300"
                 >
                   <AlertCircle className="w-6 h-6 text-blue-600 mb-2 inline-block" />
                   Жазбалар жоқ. Жоғарыдағы форманы пайдаланыңыз.
@@ -348,7 +360,10 @@ export default function Monitoring() {
               </tr>
             ) : (
               displayed.map((r, i) => (
-                <tr key={r.id} className="hover:bg-gray-100">
+                <tr
+                  key={r.id}
+                  className="hover:bg-gray-100 dark:hover:bg-gray-600"
+                >
                   {columns.map((col) => (
                     <td
                       key={col.accessor}
@@ -372,7 +387,7 @@ export default function Monitoring() {
         </table>
       </div>
 
-      {/* Фильтр */}
+      {/* Фильтр и возврат наверх */}
       <div className="flex items-center justify-between mt-2">
         <div className="flex items-center space-x-2">
           <Calendar className="w-5 h-5 text-blue-600" />
@@ -386,7 +401,9 @@ export default function Monitoring() {
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectLabel className="text-xs">Дерек</SelectLabel>
+                <SelectLabel className="text-xs dark:text-gray-300">
+                  Дерек
+                </SelectLabel>
                 <SelectItem value="7days" className="text-xs">
                   Соңғы 7 күн
                 </SelectItem>
@@ -412,11 +429,11 @@ export default function Monitoring() {
       {/* Подтверждение удаления */}
       {confirmDeleteIdx != null && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center">
-          <div className="bg-white p-6 rounded shadow max-w-sm w-full space-y-4">
-            <h3 className="text-lg font-semibold text-center">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded shadow max-w-sm w-full space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 text-center">
               Жоюды растайсыз ба?
             </h3>
-            <p className="text-center">
+            <p className="text-center text-gray-700 dark:text-gray-300">
               Сіз бұл жазбаны шынымен жойғыңыз келе ме?
             </p>
             <div className="flex justify-center gap-4">

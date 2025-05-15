@@ -18,17 +18,17 @@ export default function Login() {
     e.preventDefault();
 
     if (!email || !password) {
-      toast.error("Барлық өрістерді толтырыңыз ❌");
+      toast.error("Барлық өрістерді толтырыңыз");
       return;
     }
 
     if (password.length < 6) {
-      toast.error("Құпия сөз кем дегенде 6 таңбадан тұруы керек ❌");
+      toast.error("Құпия сөз кем дегенде 6 таңбадан тұруы керек");
       return;
     }
 
     setLoading(true);
-    toast.success("Сәтті кіру! 🎉");
+    toast.success("Сәтті кіру!");
 
     setTimeout(() => {
       console.log("Email:", email);

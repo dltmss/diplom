@@ -16,14 +16,15 @@ import {
 import { toast } from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext.jsx";
 
-// Диалог из вашего UI
+// Диалог вашего UI
 import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogFooter,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
+  DialogClose,
 } from "../components/ui/dialog";
 import { Button } from "../components/ui/button";
 
@@ -42,23 +43,32 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
   const location = useLocation();
   const [isDialogOpen, setDialogOpen] = useState(false);
 
-  // Смотрим, какая ссылка активна
+  // Определяем активный пункт
   const activeIndex = menuItems.findIndex(({ to }) =>
     to === "/analytics/upload"
       ? location.pathname.startsWith("/analytics")
       : location.pathname === to
   );
 
+  // Анимация для Framer Motion
   const initial = { opacity: 0, x: -20 };
   const animate = { opacity: 1, x: 0 };
   const transition = { type: "spring", stiffness: 300, damping: 30 };
 
+  // Обработчик выхода
   const handleLogout = async () => {
     setDialogOpen(false);
-    toast.success("Сәтті шығу! 🎉");
-    navigate("/", { replace: true });
     await logout();
+    toast.success("Сәтті шықтыңыз");
+    navigate("/", { replace: true });
   };
+
+  // Берём photoUrl (с маленькой «u» в контексте) и подставляем заглушку, если нет
+  const avatarUrl =
+    user?.photoUrl ||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(
+      user?.name || "?"
+    )}&background=4f46e5&color=fff`;
 
   return (
     <>
@@ -114,24 +124,18 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
               isOpen ? "flex items-center space-x-3" : "flex justify-center"
             }
           >
-            {user.photoURL ? (
-              <img
-                src={user.photoURL}
-                alt="Avatar"
-                className="w-12 h-12 rounded-full object-cover border-2 border-indigo-500"
-              />
-            ) : (
-              <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-white font-semibold text-lg">
-                {user.name?.[0]?.toUpperCase() || "U"}
-              </div>
-            )}
+            <img
+              src={avatarUrl}
+              alt={user?.name || "User"}
+              className="w-12 h-12 rounded-full object-cover border-2 border-indigo-500"
+            />
             {isOpen && (
               <div className="overflow-hidden leading-tight">
                 <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
-                  {user.name}
+                  {user?.name || "Гость"}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {user.role || "User"}
+                  {user?.role || "User"}
                 </p>
               </div>
             )}
@@ -206,7 +210,6 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
         {/* Profile / Logout */}
         <div className="mt-auto px-4 pb-6">
           <nav className="space-y-1">
-            {/* Profile link */}
             <NavLink
               to="/profile"
               title={!isOpen ? "Профиль" : undefined}
@@ -232,8 +235,6 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
                 )}
               </motion.div>
             </NavLink>
-
-            {/* Logout button */}
             <button
               onClick={() => setDialogOpen(true)}
               type="button"
@@ -253,7 +254,7 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
         </div>
       </aside>
 
-      {/* Кастомный диалог выхода */}
+      {/* Диалог подтверждения выхода */}
       <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-lg max-w-sm mx-auto">
           <DialogHeader>
@@ -273,6 +274,7 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
               Иә
             </Button>
           </DialogFooter>
+          <DialogClose className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
         </DialogContent>
       </Dialog>
     </>
