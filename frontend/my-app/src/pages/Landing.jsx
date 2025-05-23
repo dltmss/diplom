@@ -209,7 +209,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* FAQ */}
+      {/* FAQ
       <section className="bg-white py-20">
         <div className="max-w-3xl mx-auto px-6">
           <h3 className="text-2xl md:text-3xl font-semibold text-center mb-8">
@@ -258,7 +258,7 @@ export default function Landing() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* FOOTER */}
       <footer className="bg-gray-900 text-gray-300 py-6 text-center text-sm">

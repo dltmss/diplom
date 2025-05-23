@@ -1,11 +1,10 @@
-// src/pages/Login.jsx
-
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Mail, Lock, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
+import { loginUser } from "@/lib/auth"; // 👈 импорт
 
 export default function Login() {
   const navigate = useNavigate();
@@ -14,7 +13,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!email || !password) {
@@ -28,17 +27,23 @@ export default function Login() {
     }
 
     setLoading(true);
-    toast.success("Сәтті кіру!");
 
-    setTimeout(() => {
-      console.log("Email:", email);
-      console.log("Құпия сөз:", password);
+    try {
+      await loginUser({ email, password }); // 👈 вызов API
+      toast.success("Сәтті кірдіңіз!");
+      navigate("/dashboard");
+    } catch (err) {
+      toast.error(
+        err.response?.data?.detail || "Кіру кезінде қате пайда болды"
+      );
+      console.error(err);
+    } finally {
       setLoading(false);
-      navigate("/dashboard"); // ✅ Здесь исправлено на /dashboard
-    }, 1500);
+    }
   };
 
   return (
+    // твой JSX без изменений
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-purple-600 dark:from-gray-900 dark:to-gray-800 transition-colors duration-500">
       <form
         onSubmit={handleSubmit}
@@ -48,7 +53,6 @@ export default function Login() {
           Қош келдіңіз!
         </h2>
 
-        {/* Email */}
         <div className="relative">
           <Mail className="absolute left-3 top-3 text-gray-400 dark:text-gray-500" />
           <Input
@@ -61,7 +65,6 @@ export default function Login() {
           />
         </div>
 
-        {/* Password */}
         <div className="relative">
           <Lock className="absolute left-3 top-3 text-gray-400 dark:text-gray-500" />
           <Input
@@ -74,7 +77,6 @@ export default function Login() {
           />
         </div>
 
-        {/* Submit Button */}
         <Button
           type="submit"
           disabled={loading}

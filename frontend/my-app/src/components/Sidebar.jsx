@@ -28,6 +28,8 @@ import {
 } from "../components/ui/dialog";
 import { Button } from "../components/ui/button";
 
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+
 const menuItems = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Басты бет" },
   { to: "/monitoring", icon: Activity, label: "Мониторинг" },
@@ -65,9 +67,9 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
 
   // Берём photoUrl (с маленькой «u» в контексте) и подставляем заглушку, если нет
   const avatarUrl =
-    user?.photoUrl ||
+    user?.avatar_url ||
     `https://ui-avatars.com/api/?name=${encodeURIComponent(
-      user?.name || "?"
+      user?.fullname || "?"
     )}&background=4f46e5&color=fff`;
 
   return (
@@ -124,15 +126,21 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
               isOpen ? "flex items-center space-x-3" : "flex justify-center"
             }
           >
-            <img
-              src={avatarUrl}
-              alt={user?.name || "User"}
-              className="w-12 h-12 rounded-full object-cover border-2 border-indigo-500"
-            />
+            <Avatar className="w-12 h-12 border-2 border-indigo-500">
+              {avatarUrl ? (
+                <AvatarImage
+                  src={`http://localhost:8000${avatarUrl}`}
+                  alt={user?.fullname || "User"}
+                />
+              ) : null}
+              <AvatarFallback>
+                {user?.fullname?.[0]?.toUpperCase() || "U"}
+              </AvatarFallback>
+            </Avatar>
             {isOpen && (
               <div className="overflow-hidden leading-tight">
                 <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
-                  {user?.name || "Гость"}
+                  {user?.fullname || "Гость"}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   {user?.role || "User"}

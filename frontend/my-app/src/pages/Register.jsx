@@ -3,8 +3,9 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { User, Mail, Lock, Loader2 } from "lucide-react";
+import { User, Mail, Lock, Loader2, Phone } from "lucide-react";
 import toast from "react-hot-toast";
+import { registerUser } from "../lib/auth";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -12,12 +13,14 @@ export default function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [position, setPosition] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !phone || !position) {
       toast.error("Барлық өрістерді толтырыңыз");
       return;
     }
@@ -28,15 +31,27 @@ export default function Register() {
     }
 
     setLoading(true);
-    toast.success("Тіркелу сәтті аяқталды!");
 
-    setTimeout(() => {
-      console.log("Аты-жөні:", name);
-      console.log("Email:", email);
-      console.log("Құпия сөз:", password);
+    try {
+      await registerUser({
+        fullname: name,
+        email,
+        password,
+        phone,
+        position,
+        avatar_url: null,
+      });
+
+      toast.success("Тіркелу сәтті аяқталды!");
+      navigate("/login");
+    } catch (err) {
+      toast.error(
+        err.response?.data?.detail || "Тіркелу кезінде қате пайда болды"
+      );
+      console.error(err);
+    } finally {
       setLoading(false);
-      navigate("/"); // Redirect to Dashboard
-    }, 1500);
+    }
   };
 
   return (
@@ -85,6 +100,31 @@ export default function Register() {
             onChange={(e) => setPassword(e.target.value)}
             required
             className="pl-10"
+          />
+        </div>
+
+        {/* Phone */}
+        <div className="relative">
+          <Phone className="absolute left-3 top-3 text-gray-400 dark:text-gray-500" />
+          <Input
+            type="text"
+            placeholder="Телефон"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            required
+            className="pl-10"
+          />
+        </div>
+
+        {/* Position */}
+        <div className="relative">
+          <Input
+            type="text"
+            placeholder="Қызметі"
+            value={position}
+            onChange={(e) => setPosition(e.target.value)}
+            required
+            className="pl-3"
           />
         </div>
 

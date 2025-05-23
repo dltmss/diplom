@@ -1,18 +1,33 @@
 # app/main.py
 
 from fastapi import FastAPI
-from app.database import engine, Base
-from app.routers import users
-from app import models
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.openapi.utils import get_openapi
-from app.routers import finance
-from app.routers import equipment
-from app.routers import logs
+from fastapi.middleware.cors import CORSMiddleware  # ✅ ДОБАВЛЕНО
+from fastapi.staticfiles import StaticFiles
+
+from app.database import engine, Base
+from app.routers import users, finance, equipment, logs
+from app import models
+
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/login")
 
 app = FastAPI()
+
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+origins = [
+    "http://localhost:5173",  # адрес Vite (React frontend)
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,          # Разрешённые источники
+    allow_credentials=True,
+    allow_methods=["*"],            # Разрешены все методы (GET, POST и т.д.)
+    allow_headers=["*"],            # Разрешены все заголовки
+)
 
 # Роутеры
 app.include_router(users.router, prefix="/users", tags=["Users"])

@@ -1,5 +1,4 @@
-// src/pages/Profile.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,42 +12,73 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Mail, Phone, Upload, CheckCircle2 } from "lucide-react";
-export default function Profile() {
-  const [email, setEmail] = useState("aybek@example.com");
-  const [phone, setPhone] = useState("+7 777 777 77 77");
-  const [avatarUrl, setAvatarUrl] = useState(
-    "https://randomuser.me/api/portraits/men/32.jpg"
-  );
+import { useAuth } from "@/contexts/AuthContext";
+import { uploadAvatar } from "@/lib/auth";
+import { updateCurrentUser } from "@/lib/auth";
 
+export default function Profile() {
+  const { user, login } = useAuth(); // login — для перезагрузки user
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
   const [showMessage, setShowMessage] = useState(false);
 
-  const handleImageChange = (e) => {
+  // Загрузка текущих данных
+  useEffect(() => {
+    if (user) {
+      setEmail(user.email || "");
+      setPhone(user.phone || "");
+      setAvatarUrl(user.avatar_url || "");
+    }
+  }, [user]);
+
+  const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setAvatarUrl(imageUrl);
+      try {
+        const url = await uploadAvatar(file); // ✅ отправка на сервер
+        setAvatarUrl(url); // ✅ обновление локально
+        await login(); // ✅ обновим user из backend
+      } catch (err) {
+        console.error("Avatar upload error:", err);
+      }
     }
   };
 
-  const handleSave = () => {
-    setShowConfirm(false);
-    setShowMessage(true);
-    setTimeout(() => setShowMessage(false), 3000);
+  const handleSave = async () => {
+    try {
+      await updateCurrentUser({ email, phone, avatar_url: avatarUrl });
+      await login(); // перезагрузим user из API
+      setShowConfirm(false);
+      setShowMessage(true);
+      setTimeout(() => setShowMessage(false), 3000);
+    } catch (err) {
+      console.error(err);
+      setShowConfirm(false);
+    }
   };
 
   return (
     <div className="flex justify-center items-start mt-4 lg:mt-6 px-4">
       <Card className="w-full max-w-4xl rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
-        {/* Верхняя часть */}
         <div className="bg-gradient-to-r from-blue-500 to-indigo-500 p-6 text-white text-center rounded-t-2xl relative">
           <Dialog>
             <DialogTrigger asChild>
               <div className="relative group w-fit mx-auto cursor-pointer">
-                <Avatar className="w-24 h-24 ring-4 ring-white transition-transform group-hover:scale-105">
-                  <AvatarImage src={avatarUrl} alt="User" />
-                  <AvatarFallback>U</AvatarFallback>
+                <Avatar className="w-24 h-24 ring-4 ring-white transition-transform duration-300 group-hover:scale-105 border-4 border-indigo-500 shadow-md">
+                  {avatarUrl ? (
+                    <AvatarImage
+                      src={`http://localhost:8000${avatarUrl}`}
+                      alt={user?.fullname || "User"}
+                      className="object-cover"
+                    />
+                  ) : null}
+                  <AvatarFallback className="bg-indigo-600 text-white font-semibold text-xl flex items-center justify-center">
+                    {user?.fullname?.[0]?.toUpperCase() || "U"}
+                  </AvatarFallback>
                 </Avatar>
+
                 <div className="absolute bottom-0 right-0 bg-white text-blue-600 p-1 rounded-full shadow-md group-hover:scale-110 transition">
                   <Upload className="w-4 h-4" />
                 </div>
@@ -69,12 +99,11 @@ export default function Profile() {
           </Dialog>
 
           <CardTitle className="text-2xl font-bold mt-3">
-            Айбек Мұратұлы
+            {user?.fullname || "Қолданушы"}
           </CardTitle>
-          <p className="text-blue-100 text-sm">Жүйе әкімшісі</p>
+          <p className="text-blue-100 text-sm">{user?.role || "Пайдаланушы"}</p>
         </div>
 
-        {/* Контент */}
         <CardContent className="px-6 py-6 md:px-10 md:py-6 bg-white dark:bg-gray-900 space-y-6">
           <section className="space-y-4">
             <h2 className="text-base font-semibold text-gray-800 dark:text-white">

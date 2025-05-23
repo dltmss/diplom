@@ -6,6 +6,7 @@ import React, {
   useCallback,
 } from "react";
 import { useSettings } from "./SettingsContext.jsx";
+import { getCurrentUser, logoutUser } from "@/lib/auth"; // 👈
 
 const AuthContext = createContext();
 
@@ -14,16 +15,25 @@ export function AuthProvider({ children }) {
   const { settings } = useSettings();
   const { idleTimeout } = settings;
 
+  // ✅ Выход
   const logout = useCallback(() => {
+    logoutUser(); // удаляет токен из localStorage
     setUser(null);
-    localStorage.removeItem("currentUser");
   }, []);
 
+  // ✅ При загрузке получаем пользователя (если есть токен)
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("currentUser") || "null");
-    if (saved) setUser(saved);
-  }, []);
+    const token = localStorage.getItem("token");
+    if (!token) return;
 
+    getCurrentUser()
+      .then(setUser)
+      .catch(() => {
+        logout(); // токен недействителен — выходим
+      });
+  }, [logout]);
+
+  // ✅ Автоматический выход по бездействию
   useEffect(() => {
     if (!user) return;
 
@@ -50,9 +60,14 @@ export function AuthProvider({ children }) {
     };
   }, [user, idleTimeout, logout]);
 
-  const login = (userData) => {
-    setUser(userData);
-    localStorage.setItem("currentUser", JSON.stringify(userData));
+  // ✅ Ручной вход (после login)
+  const login = async () => {
+    try {
+      const userData = await getCurrentUser();
+      setUser(userData);
+    } catch {
+      logout();
+    }
   };
 
   return (

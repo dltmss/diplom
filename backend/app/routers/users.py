@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -11,6 +11,8 @@ from app.auth import verify_password, create_access_token
 from app.schemas import UserCreate, UserRead, UserLogin, Token, UserUpdate, PasswordChange
 
 from app.auth import get_current_user
+
+import os, shutil
 
 router = APIRouter()
 
@@ -49,7 +51,10 @@ async def get_me(current_user: User = Depends(get_current_user)):
         "id": current_user.id,
         "email": current_user.email,
         "role": current_user.role,
-        "fullname": current_user.fullname
+        "fullname": current_user.fullname,
+        "phone": current_user.phone,
+        "position": current_user.position,
+        "avatar_url": current_user.avatar_url
     }
 
 @router.get("/admin-only")
@@ -79,3 +84,23 @@ async def change_password(
     
     current_user.password = hash_password(data.new_password)
     await db.commit()
+
+@router.post("/me/avatar")
+async def upload_avatar(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    filename = f"user_{current_user.id}.jpg"
+    folder_path = "app/static/avatars"
+    os.makedirs(folder_path, exist_ok=True)
+    file_path = os.path.join(folder_path, filename)
+
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    current_user.avatar_url = f"/static/avatars/{filename}"
+    db.add(current_user)
+    await db.commit()
+
+    return {"avatar_url": current_user.avatar_url}

@@ -1,26 +1,35 @@
-// src/contexts/MonitoringContext.jsx
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import {
+  fetchMonitoring,
+  createMonitoring,
+  updateMonitoring,
+  deleteMonitoring,
+} from "@/lib/api";
 
 const MonitoringContext = createContext(null);
 
 export function MonitoringProvider({ children }) {
-  // Все записи мониторинга
   const [entries, setEntries] = useState([]);
 
-  // Добавить новую запись
-  const addEntry = (entry) => {
-    setEntries((prev) => [...prev, entry]);
+  useEffect(() => {
+    (async () => {
+      const data = await fetchMonitoring();
+      setEntries(data);
+    })();
+  }, []);
+
+  const addEntry = async (entry) => {
+    const newEntry = await createMonitoring(entry);
+    setEntries((prev) => [...prev, newEntry]);
   };
 
-  // Обновить существующую запись по id
-  const updateEntry = (entry) => {
-    setEntries((prev) =>
-      prev.map((e) => (e.id === entry.id ? { ...e, ...entry } : e))
-    );
+  const updateEntry = async (entry) => {
+    const updated = await updateMonitoring(entry.id, entry);
+    setEntries((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
   };
 
-  // Удалить запись по id
-  const deleteEntry = (id) => {
+  const deleteEntry = async (id) => {
+    await deleteMonitoring(id);
     setEntries((prev) => prev.filter((e) => e.id !== id));
   };
 
