@@ -1,35 +1,42 @@
+// src/contexts/MonitoringContext.jsx
 import React, { createContext, useContext, useState, useEffect } from "react";
 import {
-  fetchMonitoring,
-  createMonitoring,
-  updateMonitoring,
-  deleteMonitoring,
-} from "@/lib/api";
+  fetchMonitoringData,
+  createMonitoringEntry,
+  updateMonitoringEntry,
+  deleteMonitoringEntry,
+} from "../api/monitoring.js"; // <--- обязательно относительный путь!
 
-const MonitoringContext = createContext(null);
+const MonitoringContext = createContext();
 
 export function MonitoringProvider({ children }) {
   const [entries, setEntries] = useState([]);
 
+  // при загрузке — фетчим все записи
   useEffect(() => {
     (async () => {
-      const data = await fetchMonitoring();
-      setEntries(data);
+      try {
+        const data = await fetchMonitoringData();
+        setEntries(data);
+      } catch (err) {
+        console.error("Не удалось загрузить monitoring:", err);
+      }
     })();
   }, []);
 
   const addEntry = async (entry) => {
-    const newEntry = await createMonitoring(entry);
-    setEntries((prev) => [...prev, newEntry]);
+    const created = await createMonitoringEntry(entry);
+    // вставляем в конец списка
+    setEntries((prev) => [...prev, created]);
   };
 
   const updateEntry = async (entry) => {
-    const updated = await updateMonitoring(entry.id, entry);
+    const updated = await updateMonitoringEntry(entry.id, entry);
     setEntries((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
   };
 
   const deleteEntry = async (id) => {
-    await deleteMonitoring(id);
+    await deleteMonitoringEntry(id);
     setEntries((prev) => prev.filter((e) => e.id !== id));
   };
 
@@ -45,7 +52,7 @@ export function MonitoringProvider({ children }) {
 export function useMonitoring() {
   const ctx = useContext(MonitoringContext);
   if (!ctx) {
-    throw new Error("useMonitoring must be used within a MonitoringProvider");
+    throw new Error("useMonitoring must be used inside MonitoringProvider");
   }
   return ctx;
 }

@@ -45,7 +45,6 @@ export default function Monitoring() {
       return d >= cutoff && d <= now;
     });
   }, [entries, filter]);
-  // Новые сначала
   const displayed = filtered.slice().reverse();
 
   // Fullscreen API
@@ -114,11 +113,29 @@ export default function Monitoring() {
     { name: "errHw", placeholder: "HW қате" },
     { name: "activePct", placeholder: "Белсенді(%)" },
   ];
-  const columns = [
-    { header: "Жабдық", accessor: "eq" },
-    { header: "Күні", accessor: "date" },
-    ...formFields.map((f) => ({ header: f.placeholder, accessor: f.name })),
+
+  // Поля таблицы (EquipmentRead)
+  const tableFields = [
+    { key: "name", label: "Жабдық" },
+    { key: "date", label: "Күні" },
+    { key: "asic", label: "ASIC(°C)" },
+    { key: "fan", label: "Вентилятор(%)" },
+    { key: "core", label: "Ядро(%)" },
+    { key: "memory", label: "Жад(%)" },
+    { key: "disk", label: "Диск(%)" },
+    { key: "energy_vt", label: "Энергия(Вт)" },
+    { key: "energy_kvt", label: "Энергия(кВт·сағ)" },
+    { key: "hashrate", label: "Hashrate(TH/s)" },
+    { key: "effectiveness", label: "Эффективтік(TH/kWh)" },
+    { key: "uptime", label: "Uptime(сағ)" },
+    { key: "hw_error", label: "HW қате" },
+    { key: "active", label: "Белсенді(%)" },
   ];
+
+  const columns = tableFields.map((f) => ({
+    header: f.label,
+    accessor: f.key,
+  }));
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -130,75 +147,120 @@ export default function Monitoring() {
     const n = parseFloat(val);
     if (isNaN(n)) return val;
     switch (key) {
-      case "powerNow":
+      case "energy_vt":
         return `${n.toFixed(0)} W`;
-      case "energyDay":
+      case "energy_kvt":
         return `${n.toFixed(2)} кВт·сағ`;
       case "hashrate":
         return `${n.toFixed(2)} TH/s`;
-      case "efficiency":
+      case "effectiveness":
         return `${n.toFixed(2)} TH/kWh`;
       case "uptime":
         return `${n} сағ`;
-      case "activePct":
+      case "active":
         return `${n}%`;
       default:
         return val;
     }
   };
 
-  const saveRecord = () => {
+  // Сохранить / обновить
+  const saveRecord = async () => {
     const errs = {};
     if (!form.date) errs.date = "Күні міндетті";
     if (Object.keys(errs).length) {
       setErrors(errs);
       return;
     }
-    setIsSaving(true);
-    const rec = {
-      ...form,
-      id: editIdx != null ? entries[editIdx].id : Date.now(),
-    };
-    if (editIdx == null) {
-      addEntry(rec);
-      setToast("Жазба қосылды");
-    } else {
-      updateEntry(rec);
-      setToast("Жазба жаңартылды");
-    }
-    setForm(initForm);
-    setEditIdx(null);
-    setIsSaving(false);
-    addEvent({
-      type: editIdx == null ? "Add Record" : "Edit Record",
-      params: { id: rec.id },
-    });
-  };
 
-  const onEdit = (i) => {
-    setForm(entries[i]);
-    setEditIdx(i);
-  };
-  const onDelete = (i) => setConfirmDeleteIdx(i);
-  const confirmDelete = () => {
-    const i = confirmDeleteIdx;
-    if (i == null) return;
-    deleteEntry(entries[i].id);
-    setToast("Жазба өшірілді");
-    if (editIdx === i) {
+    const payload = {
+      name: form.eq,
+      date: form.date,
+      asic: Number(form.asic),
+      fan: Number(form.fan),
+      core: Number(form.loadCore),
+      memory: Number(form.loadMem),
+      disk: Number(form.loadDisk),
+      energy_vt: Number(form.powerNow),
+      energy_kvt: Number(form.energyDay),
+      hashrate: Number(form.hashrate),
+      effectiveness: Number(form.efficiency),
+      uptime: Number(form.uptime),
+      hw_error: Number(form.errHw),
+      active: Number(form.activePct),
+    };
+
+    setIsSaving(true);
+    try {
+      if (editIdx == null) {
+        const created = await addEntry(payload);
+        setToast("Жазба қосылды");
+        addEvent({ type: "Add Record", params: { id: created.id } });
+      } else {
+        const id = entries[editIdx].id;
+        const updated = await updateEntry(id, payload);
+        setToast("Жазба жаңартылды");
+        addEvent({ type: "Edit Record", params: { id: updated.id } });
+      }
       setForm(initForm);
       setEditIdx(null);
+    } catch (err) {
+      console.error(err);
+      setToast("Қате орын алды");
+    } finally {
+      setIsSaving(false);
     }
-    addEvent({ type: "Delete Record", params: { id: entries[i].id } });
-    setConfirmDeleteIdx(null);
+  };
+
+  // Редактировать
+  const onEdit = (i) => {
+    const e = entries[i];
+    setForm({
+      eq: e.name,
+      date: e.date,
+      asic: e.asic.toString(),
+      fan: e.fan.toString(),
+      loadCore: e.core.toString(),
+      loadMem: e.memory.toString(),
+      loadDisk: e.disk.toString(),
+      powerNow: e.energy_vt.toString(),
+      energyDay: e.energy_kvt.toString(),
+      hashrate: e.hashrate.toString(),
+      efficiency: e.effectiveness.toString(),
+      uptime: e.uptime.toString(),
+      errHw: e.hw_error.toString(),
+      activePct: e.active.toString(),
+    });
+    setEditIdx(i);
+  };
+
+  // Удаление
+  const onDelete = (i) => setConfirmDeleteIdx(i);
+  const confirmDelete = async () => {
+    const i = confirmDeleteIdx;
+    if (i == null) return;
+    try {
+      await deleteEntry(entries[i].id);
+      setToast("Жазба өшірілді");
+      addEvent({ type: "Delete Record", params: { id: entries[i].id } });
+      if (editIdx === i) {
+        setForm(initForm);
+        setEditIdx(null);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setConfirmDeleteIdx(null);
+    }
   };
   const cancelDelete = () => setConfirmDeleteIdx(null);
 
+  // Экспорт CSV
   const exportCSV = () => {
     if (!entries.length) return;
     setIsExporting(true);
-    const hdr = columns.map((c) => c.header);
-    const rows = entries.map((r) => columns.map((c) => r[c.accessor]));
+    const hdr = tableFields.map((f) => f.label);
+    const rows = entries.map((r) => tableFields.map((f) => r[f.key]));
     const csv = [hdr, ...rows].map((r) => r.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const fn = `monitoring_${Date.now()}.csv`;
@@ -234,7 +296,7 @@ export default function Monitoring() {
             value={form.eq}
             onValueChange={(v) => setForm((f) => ({ ...f, eq: v }))}
           >
-            <SelectTrigger className="h-7 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-indigo-200">
+            <SelectTrigger className="h-7 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
               <SelectValue placeholder="Жабдық" />
             </SelectTrigger>
             <SelectContent>
@@ -258,7 +320,7 @@ export default function Monitoring() {
               name="date"
               value={form.date}
               onChange={handleChange}
-              className="h-7 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-400"
+              className="h-7 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
               aria-invalid={!!errors.date}
             />
             {errors.date && (
@@ -274,7 +336,7 @@ export default function Monitoring() {
               value={form[f.name]}
               onChange={handleChange}
               placeholder={f.placeholder}
-              className="h-7 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-400"
+              className="h-7 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
             />
           ))}
 
@@ -364,12 +426,9 @@ export default function Monitoring() {
                   key={r.id}
                   className="hover:bg-gray-100 dark:hover:bg-gray-600"
                 >
-                  {columns.map((col) => (
-                    <td
-                      key={col.accessor}
-                      className="px-1 py-0.5 whitespace-nowrap"
-                    >
-                      {formatValue(col.accessor, r[col.accessor])}
+                  {tableFields.map((f) => (
+                    <td key={f.key} className="px-1 py-0.5 whitespace-nowrap">
+                      {formatValue(f.key, r[f.key])}
                     </td>
                   ))}
                   <td className="px-1 py-0.5 whitespace-nowrap flex gap-1">
@@ -387,7 +446,7 @@ export default function Monitoring() {
         </table>
       </div>
 
-      {/* Фильтр и возврат наверх */}
+      {/* Фильтр + возврат наверх */}
       <div className="flex items-center justify-between mt-2">
         <div className="flex items-center space-x-2">
           <Calendar className="w-5 h-5 text-blue-600" />
@@ -426,7 +485,7 @@ export default function Monitoring() {
         </Button>
       </div>
 
-      {/* Подтверждение удаления */}
+      {/* Модалка подтверждения удаления */}
       {confirmDeleteIdx != null && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center">
           <div className="bg-white dark:bg-gray-800 p-6 rounded shadow max-w-sm w-full space-y-4">
