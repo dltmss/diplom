@@ -2,8 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+/* --- Определяем наши CSS-переменные --- */
 @layer base {
   :root {
+    /* Цветовые переменные (HSL) */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
@@ -29,7 +31,14 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
+
+    /* Наши новые переменные для шрифта и размера */
+    --font-family: sans-serif;
+    --font-size-base: 16px;
+    --accent-color: hsl(var(--primary));
   }
+
+  /* Тёмная тема */
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
@@ -56,13 +65,20 @@
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
   }
-}
 
-@layer base {
-  * {
-    @apply border-border;
+  /* Применяем переменные к html и body */
+  html {
+    font-family: var(--font-family);
+    font-size: var(--font-size-base);
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-[hsl(var(--background))] text-[hsl(var(--foreground))];
+  }
+
+  /* Пример: окрашиваем основные кнопки в accent */
+  .btn-accent {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
   }
 }

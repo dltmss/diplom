@@ -32,18 +32,19 @@ export default function Landing() {
 
   const faqData = [
     {
-      question: "Бұл жүйені қалай қолдануға болады?",
+      question: "Пайдаланушы рөлдерін қалай баптайды?",
       answer:
-        "Тіркелген соң, жеке кабинетке кіріп, деректерді жүктеп, аналитика мен есептерді қолдана аласыз.",
+        "Әкімші панелінде жаңа рөлдер жасап, оларға қажетті құқықтарды тағайындайды.",
     },
     {
-      question: "Менің деректерім сақтала ма?",
-      answer: "Иә. Барлық деректер қауіпсіз серверлерде шифрланып сақталады.",
+      question: "Қате немесе ақау туындаған жағдайда қай жерге хабарласады?",
+      answer:
+        "Техникалық қолдау бөліміне support@bcdcompany.kz электрондық поштасы арқылы хабарласады.",
     },
     {
-      question: "Есептерді қалай жүктеуге болады?",
+      question: "Бұл жүйені қалай пайдалана алады?",
       answer:
-        "Нәтижелерді PDF, Excel немесе CSV форматында бір батырмамен экспорттай аласыз.",
+        "Пайдаланушы тіркелгеннен кейін жеке кабинетке кіріп, деректерді жүктеп, аналитика мен есептерді пайдалана алады.",
     },
   ];
 
@@ -109,9 +110,7 @@ export default function Landing() {
     <div className="antialiased scroll-smooth font-sans text-gray-900">
       {/* HERO */}
       <div className="relative bg-gradient-to-tr from-purple-600 to-blue-500 text-white">
-        {/* лёгкая тёмная наложка */}
-        <div className="absolute inset-0 bg-black bg-opacity-20"></div>
-
+        <div className="absolute inset-0 bg-black bg-opacity-20" />
         <header className="relative max-w-6xl mx-auto p-6 flex items-center justify-between">
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
             BCD Company
@@ -131,7 +130,6 @@ export default function Landing() {
             </Link>
           </nav>
         </header>
-
         <div className="relative max-w-4xl mx-auto px-6 py-24 text-center">
           <motion.h2
             initial={{ opacity: 0, y: -20 }}
@@ -209,56 +207,49 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* FAQ
-      <section className="bg-white py-20">
-        <div className="max-w-3xl mx-auto px-6">
+      {/* FAQ */}
+      <section className="bg-white py-16">
+        <div className="max-w-4xl mx-auto px-6">
           <h3 className="text-2xl md:text-3xl font-semibold text-center mb-8">
             Жиі қойылатын сұрақтар
           </h3>
-          <div className="space-y-3">
-            {faqData.map(({ question, answer }, i) => (
-              <motion.div
+          <div className="space-y-4">
+            {faqData.map((item, i) => (
+              <div
                 key={i}
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: i * 0.1 }}
                 className="border border-gray-200 rounded-lg overflow-hidden"
               >
                 <button
                   onClick={() => toggleFaq(i)}
-                  className="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition"
+                  className="w-full flex justify-between items-center p-4 bg-gray-50 hover:bg-gray-100 transition"
                 >
-                  <div className="flex items-center gap-2">
-                    <HelpCircle className="w-5 h-5 text-purple-600" />
-                    <span className="text-gray-800 font-medium text-sm">
-                      {question}
-                    </span>
-                  </div>
-                  <motion.div
-                    animate={{ rotate: activeFaq === i ? 180 : 0 }}
-                    transition={{ type: "spring", stiffness: 300 }}
-                  >
+                  <span className="text-gray-900 font-medium">
+                    {item.question}
+                  </span>
+                  {activeFaq === i ? (
+                    <ChevronUp className="w-5 h-5 text-gray-600" />
+                  ) : (
                     <ChevronDown className="w-5 h-5 text-gray-600" />
-                  </motion.div>
+                  )}
                 </button>
-                <AnimatePresence initial={false}>
+                <AnimatePresence>
                   {activeFaq === i && (
                     <motion.div
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.3 }}
-                      className="px-4 py-3 bg-gray-50 text-gray-700 text-sm leading-relaxed"
+                      className="px-4 pb-4 text-gray-700 text-sm"
                     >
-                      {answer}
+                      {item.answer}
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
-      </section> */}
+      </section>
 
       {/* FOOTER */}
       <footer className="bg-gray-900 text-gray-300 py-6 text-center text-sm">

@@ -2,95 +2,106 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useMonitoring } from "../contexts/MonitoringContext";
 
 export default function Finance() {
-  const { entries } = useMonitoring();
+  /* ---------------------------- Деректер ---------------------------- */
+  const { entries } = useMonitoring(); // мониторингтен келетін жазбалар
 
-  // Фильтры
+  /* --------------------------- Фильтр күйі -------------------------- */
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [deviceFilter, setDeviceFilter] = useState("");
+  const [deviceFilter, setDevice] = useState("");
   const [search, setSearch] = useState("");
 
-  // Параметры расчёта
-  const [electricPrice, setElectricPrice] = useState(45); // ₸/kWh
-  const [extraCosts, setExtraCosts] = useState(0); // ₸
+  /* ---------------------- Есептеу параметрлері --------------------- */
+  const [electricPrice, setPrice] = useState(45); // ₸ / кВт·сағ
+  const [extraCosts, setExtra] = useState(0); // Қосымша шығын, ₸
 
-  // Фильтрация записей
+  /* --------------------------- Сүзгілеу ----------------------------- */
   const filtered = useMemo(() => {
     return entries.filter((e) => {
       const date = e.date || e.kuni;
       if (startDate && date < startDate) return false;
       if (endDate && date > endDate) return false;
       if (deviceFilter && e.device !== deviceFilter) return false;
+
       const term = search.toLowerCase();
       if (
         term &&
         !(e.device.toLowerCase().includes(term) || date.includes(term))
       )
         return false;
+
       return true;
     });
   }, [entries, startDate, endDate, deviceFilter, search]);
 
-  // Расчёты ключевых метрик
-  const { totalEnergy, totalMinedBCD, totalIncome, totalCost, totalProfit } =
+  /* ----------------------- Негізгі метрикалар ---------------------- */
+  const { totalEnergy, totalMined, totalIncome, totalCost, totalProfit } =
     useMemo(() => {
-      let energySum = 0;
-      let bcdSum = 0;
-      let incomeSum = 0;
-      let costSum = 0;
-      const bcdPriceUSD = 1.25;
-      const exchangeRate = 450;
+      let energy = 0;
+      let mined = 0;
+      let income = 0;
+      let cost = 0;
+
+      const BCD_USD = 1.25;
+      const KZT_PER_USD = 450;
+
       filtered.forEach((e) => {
-        const ekwh = parseFloat(e.energyKWh) || 0;
+        const ekWh = parseFloat(e.energyKWh) || 0;
         const eff = parseFloat(e.efficiency) || 0;
-        const mined = ekwh * eff;
-        const cost = ekwh * electricPrice;
-        const income = mined * bcdPriceUSD * exchangeRate;
-        energySum += ekwh;
-        bcdSum += mined;
-        costSum += cost;
-        incomeSum += income;
+
+        const minedNow = ekWh * eff; // шыққан BCD
+        const costNow = ekWh * electricPrice; // шығын
+        const incomeNow = minedNow * BCD_USD * KZT_PER_USD;
+
+        energy += ekWh;
+        mined += minedNow;
+        cost += costNow;
+        income += incomeNow;
       });
-      const profit = incomeSum - (costSum + Number(extraCosts));
+
+      const profit = income - (cost + Number(extraCosts));
+
       return {
-        totalEnergy: energySum,
-        totalMinedBCD: bcdSum,
-        totalIncome: incomeSum,
-        totalCost: costSum + Number(extraCosts),
+        totalEnergy: energy,
+        totalMined: mined,
+        totalIncome: income,
+        totalCost: cost + Number(extraCosts),
         totalProfit: profit,
       };
     }, [filtered, electricPrice, extraCosts]);
 
-  // Список устройств
+  /* ----------------------- Құрылғылар тізімі ----------------------- */
   const devices = useMemo(
     () => Array.from(new Set(entries.map((e) => e.device))),
     [entries]
   );
 
-  // Генерация CSV-файла вручную
+  /* -------------------------- CSV экспорт -------------------------- */
   const [csvUrl, setCsvUrl] = useState("");
   useEffect(() => {
     const header = [
       "Күні",
       "Құрылғы",
-      "Энергия (кВт·ч)",
-      "Эффективтік (TH/kWh)",
-      "Добыто BCD",
-      "Доход (₸)",
-      "Расход (₸)",
+      "Энергия (кВт·сағ)",
+      "Эффективтік (TH/кВт·сағ)",
+      "Шыққан BCD",
+      "Кіріс (₸)",
+      "Шығын (₸)",
       "Пайда (₸)",
     ];
+
     const rows = filtered.map((e) => {
-      const ekwh = parseFloat(e.energyKWh) || 0;
+      const ekWh = parseFloat(e.energyKWh) || 0;
       const eff = parseFloat(e.efficiency) || 0;
-      const mined = ekwh * eff;
-      const cost = ekwh * electricPrice;
+      const mined = ekWh * eff;
+      const cost = ekWh * electricPrice;
       const income = mined * 1.25 * 450;
       const profit = income - (cost + Number(extraCosts));
+
       return [
         e.date || e.kuni,
         e.device,
-        ekwh.toFixed(2),
+        ekWh.toFixed(2),
         eff.toFixed(2),
         mined.toFixed(4),
         income.toFixed(0),
@@ -98,21 +109,25 @@ export default function Finance() {
         profit.toFixed(0),
       ];
     });
-    const csvContent = [header, ...rows].map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
+
+    const csv = [header, ...rows].map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     setCsvUrl(url);
+
     return () => URL.revokeObjectURL(url);
   }, [filtered, electricPrice, extraCosts]);
 
-  return (
-    <div className="space-y-8 py-4">
-      <h1 className="text-3xl font-bold">Қаражаттар</h1>
+  /* ================================================================= */
+  /*                                UI                                 */
+  /* ================================================================= */
 
-      {/* Фильтры */}
+  return (
+    <div className="space-y-6 py-4">
+      {/* ------------------------ Фильтрлер ------------------------ */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <div>
-          <label className="block">Бастап</label>
+          <label className="block mb-1">Бастап</label>
           <input
             type="date"
             className="w-full border rounded p-2"
@@ -121,7 +136,7 @@ export default function Finance() {
           />
         </div>
         <div>
-          <label className="block">Дейін</label>
+          <label className="block mb-1">Дейін</label>
           <input
             type="date"
             className="w-full border rounded p-2"
@@ -130,123 +145,101 @@ export default function Finance() {
           />
         </div>
         <div>
-          <label className="block">Құрылғы</label>
+          <label className="block mb-1">Құрылғы</label>
           <select
             className="w-full border rounded p-2"
             value={deviceFilter}
-            onChange={(e) => setDeviceFilter(e.target.value)}
+            onChange={(e) => setDevice(e.target.value)}
           >
             <option value="">Барлығы</option>
-            {devices.map((d) => (
-              <option key={d} value={d}>
+            {devices.map((d, idx) => (
+              <option key={d || idx} value={d}>
                 {d}
               </option>
             ))}
           </select>
         </div>
         <div>
-          <label className="block">Іздеу</label>
+          <label className="block mb-1">Іздеу</label>
           <input
             type="text"
-            placeholder="Дата немесе құрылғы"
             className="w-full border rounded p-2"
+            placeholder="Күні немесе құрылғы"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
       </div>
+
       <div className="flex gap-2">
         <button
-          className="px-4 py-2 bg-gray-200 rounded"
           onClick={() => {
             setStartDate("");
             setEndDate("");
-            setDeviceFilter("");
+            setDevice("");
             setSearch("");
           }}
+          className="px-4 py-2 bg-gray-200 rounded"
         >
           Тазалау
         </button>
-        <button className="px-4 py-2 bg-blue-600 text-white rounded">
-          Қолдану
-        </button>
       </div>
 
-      {/* Key Metrics */}
+      {/* ---------------------- Негізгі метрикалар ------------------- */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <div className="border rounded p-4">
-          <h2 className="font-semibold">Доход</h2>
-          <p className="text-2xl text-green-600">₸ {totalIncome.toFixed(0)}</p>
-        </div>
-        <div className="border rounded p-4">
-          <h2 className="font-semibold">Расход</h2>
-          <p className="text-2xl text-red-500">₸ {totalCost.toFixed(0)}</p>
-        </div>
-        <div className="border rounded p-4">
-          <h2 className="font-semibold">Таза пайда</h2>
-          <p className="text-2xl text-emerald-600">
-            ₸ {totalProfit.toFixed(0)}
-          </p>
-        </div>
+        <Metric title="Кіріс" value={totalIncome} color="text-green-600" />
+        <Metric title="Шығын" value={totalCost} color="text-red-500" />
+        <Metric
+          title="Таза пайда"
+          value={totalProfit}
+          color="text-emerald-600"
+        />
       </div>
 
-      {/* Экспорт */}
-      <div>
-        <a
-          href={csvUrl}
-          download={`finance_${Date.now()}.csv`}
-          className="px-4 py-2 bg-green-600 text-white rounded"
-        >
-          CSV экспорт
-        </a>
-        <button
-          className="ml-2 px-4 py-2 bg-blue-600 text-white rounded"
-          disabled
-        >
-          XLS экспорт
-        </button>
-        <button
-          className="ml-2 px-4 py-2 bg-red-600 text-white rounded"
-          disabled
-        >
-          PDF экспорт
-        </button>
-      </div>
+      {/* ------------------------- Экспорт --------------------------- */}
+      <a
+        href={csvUrl}
+        download={`finance_${Date.now()}.csv`}
+        className="inline-block px-4 py-2 bg-green-600 text-white rounded"
+      >
+        CSV экспорттау
+      </a>
 
-      {/* Таблица */}
+      {/* ------------------------- Кесте ----------------------------- */}
       <div className="overflow-auto">
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-gray-100">
               {[
-                { label: "Күні", field: "date" },
-                { label: "Құрылғы", field: "device" },
-                { label: "Энергия (кВт·ч)", field: "energyKWh" },
-                { label: "Эффективтік (TH/kWh)", field: "efficiency" },
-                { label: "Добыто BCD", field: "minedBCD" },
-                { label: "Доход (₸)", field: "income" },
-                { label: "Расход (₸)", field: "cost" },
-                { label: "Пайда (₸)", field: "profit" },
+                "Күні",
+                "Құрылғы",
+                "Энергия (кВт·сағ)",
+                "Эффективтік (TH/кВт·сағ)",
+                "Шыққан BCD",
+                "Кіріс (₸)",
+                "Шығын (₸)",
+                "Пайда (₸)",
               ].map((col) => (
-                <th key={col.field} className="px-3 py-2">
-                  {col.label}
+                <th key={col} className="px-3 py-2">
+                  {col}
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
             {filtered.map((e) => {
-              const ekwh = parseFloat(e.energyKWh) || 0;
+              const ekWh = parseFloat(e.energyKWh) || 0;
               const eff = parseFloat(e.efficiency) || 0;
-              const mined = ekwh * eff;
-              const cost = ekwh * electricPrice;
+              const mined = ekWh * eff;
+              const cost = ekWh * electricPrice;
               const income = mined * 1.25 * 450;
               const profit = income - (cost + Number(extraCosts));
+
               return (
                 <tr key={e.id} className="border-b hover:bg-gray-50">
                   <td className="px-3 py-1">{e.date || e.kuni}</td>
                   <td className="px-3 py-1">{e.device}</td>
-                  <td className="px-3 py-1">{ekwh.toFixed(2)}</td>
+                  <td className="px-3 py-1">{ekWh.toFixed(2)}</td>
                   <td className="px-3 py-1">{eff.toFixed(2)}</td>
                   <td className="px-3 py-1">{mined.toFixed(4)}</td>
                   <td className="px-3 py-1">₸{income.toFixed(0)}</td>
@@ -258,6 +251,18 @@ export default function Finance() {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*                              helper                                */
+/* ------------------------------------------------------------------ */
+function Metric({ title, value, color }) {
+  return (
+    <div className="border rounded p-4">
+      <h2 className="font-semibold">{title}</h2>
+      <p className={`text-2xl ${color}`}>₸ {value.toFixed(0)}</p>
     </div>
   );
 }

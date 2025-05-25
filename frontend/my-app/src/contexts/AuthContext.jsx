@@ -1,3 +1,4 @@
+// src/contexts/AuthContext.jsx
 import React, {
   createContext,
   useContext,
@@ -6,39 +7,40 @@ import React, {
   useCallback,
 } from "react";
 import { useSettings } from "./SettingsContext.jsx";
-import { getCurrentUser, logoutUser } from "@/lib/auth"; // 👈
+import { getCurrentUser, logoutUser } from "@/lib/auth"; // функция, которая делает запрос /me и возвращает данные пользователя
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const { settings } = useSettings();
   const { idleTimeout } = settings;
 
-  // ✅ Выход
+  // Функция выхода
   const logout = useCallback(() => {
-    logoutUser(); // удаляет токен из localStorage
+    logoutUser(); // чистим токен
     setUser(null);
   }, []);
 
-  // ✅ При загрузке получаем пользователя (если есть токен)
+  // При монтировании пытаемся получить текущего пользователя по токену
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
     getCurrentUser()
-      .then(setUser)
+      .then((userData) => {
+        setUser(userData);
+      })
       .catch(() => {
-        logout(); // токен недействителен — выходим
+        logout(); // если токен просрочен или невалиден
       });
   }, [logout]);
 
-  // ✅ Автоматический выход по бездействию
+  // Автоматический logout по бездействию
   useEffect(() => {
     if (!user) return;
 
     let timerId;
-
     const resetTimer = () => {
       clearTimeout(timerId);
       timerId = setTimeout(logout, idleTimeout * 60 * 1000);
@@ -49,6 +51,7 @@ export function AuthProvider({ children }) {
     window.addEventListener("keydown", resetTimer);
     window.addEventListener("touchstart", resetTimer);
 
+    // запускаем первый раз
     resetTimer();
 
     return () => {
@@ -60,7 +63,7 @@ export function AuthProvider({ children }) {
     };
   }, [user, idleTimeout, logout]);
 
-  // ✅ Ручной вход (после login)
+  // Функция ручного логина (например, после формы входа)
   const login = async () => {
     try {
       const userData = await getCurrentUser();

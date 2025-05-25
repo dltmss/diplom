@@ -1,4 +1,16 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Float, Date, JSON
+# app/models.py
+
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    ForeignKey,
+    Float,
+    Date,
+    JSON,
+    DateTime,
+    func,
+)
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -8,25 +20,27 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     fullname = Column(String, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
-    password = Column(String, nullable=False)  # хешированная строка
+    password = Column(String, nullable=False)  # хеш
     avatar_url = Column(String, nullable=True)
     phone = Column(String, nullable=True)
-    role = Column(String, default="user", nullable=False)  # 'user', 'admin', 'superadmin'
+    role = Column(String, default="user", nullable=False)  # user|admin|superadmin
     position = Column(String, nullable=True)
-    
-    # Будет использоваться позже, когда сделаем логирование
+
+    # связь для ленивого/selectin-запроса
     data_logs = relationship("DataLog", back_populates="user", lazy="selectin")
 
 
 class DataLog(Base):
     __tablename__ = "data_logs"
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    user_fullname = Column(String, nullable=False)  # 👈 автоматически подставляется
-    action = Column(String, nullable=False)
-    parameter = Column(JSON, nullable=True)  # 👈 dict вместо строки
-    file_name = Column(String, nullable=True)
+    id            = Column(Integer, primary_key=True, index=True)
+    user_id       = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_fullname = Column(String,  nullable=False)
+    user_role     = Column(String,  nullable=False)                     # ← НОВОЕ
+    action        = Column(String,  nullable=False)
+    parameter     = Column(JSON,    nullable=True)
+    file_name     = Column(String,  nullable=True)
+    created_at    = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)  # ← НОВОЕ
 
     user = relationship("User", back_populates="data_logs")
 
@@ -34,31 +48,32 @@ class DataLog(Base):
 class Finance(Base):
     __tablename__ = "finance"
 
-    id = Column(Integer, primary_key=True, index=True)
-    date = Column(Date, nullable=False)
-    equipment_name = Column(String, nullable=False)
-    energy = Column(Float)
-    effectiveness = Column(Float)
-    bcd_total = Column(Float)
-    income = Column(Integer)
-    expense = Column(Integer)
-    benefit = Column(Integer)
+    id             = Column(Integer, primary_key=True, index=True)
+    date           = Column(Date,    nullable=False)
+    equipment_name = Column(String,  nullable=False)
+    energy         = Column(Float)
+    effectiveness  = Column(Float)
+    bcd_total      = Column(Float)
+    income         = Column(Integer)
+    expense        = Column(Integer)
+    benefit        = Column(Integer)
+
 
 class Equipment(Base):
     __tablename__ = "equipment"
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    date = Column(Date, nullable=False)
-    asic = Column(Integer)
-    fan = Column(Integer)
-    core = Column(Integer)
-    memory = Column(Integer)
-    disk = Column(Integer)
-    energy_vt = Column(Integer)
-    energy_kvt = Column(Integer)
-    hashrate = Column(Integer)
-    effectiveness = Column(Integer)
-    uptime = Column(Integer)
-    hw_error = Column(Integer)
-    active = Column(Integer)
+    id           = Column(Integer, primary_key=True, index=True)
+    name         = Column(String,  nullable=False)
+    date         = Column(Date,    nullable=False)
+    asic         = Column(Integer)
+    fan          = Column(Integer)
+    core         = Column(Integer)
+    memory       = Column(Integer)
+    disk         = Column(Integer)
+    energy_vt    = Column(Integer)
+    energy_kvt   = Column(Integer)
+    hashrate     = Column(Integer)
+    effectiveness= Column(Integer)
+    uptime       = Column(Integer)
+    hw_error     = Column(Integer)
+    active       = Column(Integer)

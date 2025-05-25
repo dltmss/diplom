@@ -1,17 +1,8 @@
-// src/contexts/SettingsContext.jsx
 import React, { createContext, useContext, useState, useEffect } from "react";
-import i18n from "../i18n"; // инициализация i18next
+import i18n from "../i18n"; // если не используете — можно закомментировать
 
 const SettingsContext = createContext();
 
-/**
- * SettingsProvider — хранит глобальные настройки, читает/записывает их
- * в localStorage, сразу же применяет:
- *  - CSS‑переменные (--font-family, --font-size-base, --accent-color)
- *  - классы dark / high‑contrast
- *  - атрибут lang у <html>
- *  - переключает язык i18next
- */
 export function SettingsProvider({ children }) {
   const [settings, setSettings] = useState({
     idleTimeout: 15,
@@ -24,21 +15,18 @@ export function SettingsProvider({ children }) {
     accentColor: "#4f46e5",
   });
 
-  // При монтировании — подгружаем сохранённые значения
+  // Загружаем из localStorage при старте
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem("settings") || "{}");
     setSettings((s) => ({ ...s, ...saved }));
   }, []);
 
-  // При любом изменении settings:
-  // 1) сохраняем в localStorage
-  // 2) сразу же применяем все CSS‑переменные и классы
-  // 3) переключаем язык i18next
+  // При каждом изменении settings — применяем сразу
   useEffect(() => {
     const { fontFamily, fontSize, theme, language, highContrast, accentColor } =
       settings;
 
-    // CSS-переменные
+    // Устанавливаем CSS-переменные
     document.documentElement.style.setProperty("--font-family", fontFamily);
     document.documentElement.style.setProperty(
       "--font-size-base",
@@ -46,17 +34,15 @@ export function SettingsProvider({ children }) {
     );
     document.documentElement.style.setProperty("--accent-color", accentColor);
 
-    // Классы темы
+    // Тема
     document.documentElement.classList.toggle("dark", theme === "dark");
     document.documentElement.classList.toggle("high-contrast", highContrast);
 
-    // Атрибут языка
+    // Язык у корневого <html>
     document.documentElement.lang = language;
+    // i18n.changeLanguage(language); // если используете i18next
 
-    // Переключение i18next
-    i18n.changeLanguage(language);
-
-    // Сохраняем настройки
+    // Сохраняем в localStorage
     localStorage.setItem("settings", JSON.stringify(settings));
   }, [settings]);
 
@@ -67,10 +53,6 @@ export function SettingsProvider({ children }) {
   );
 }
 
-/**
- * Хук useSettings() — возвращает { settings, setSettings }
- * и бросает ошибку, если его вызывают вне SettingsProvider.
- */
 export function useSettings() {
   const ctx = useContext(SettingsContext);
   if (!ctx) {

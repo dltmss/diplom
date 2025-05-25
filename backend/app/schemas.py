@@ -1,6 +1,13 @@
+# src/schemas.py
+
 from pydantic import BaseModel, EmailStr, constr
-from typing import Optional
-from datetime import date
+from typing import Optional, Dict, Any
+from datetime import date, datetime
+
+
+# ----------------------------------------
+# Пользователь
+# ----------------------------------------
 
 class UserCreate(BaseModel):
     fullname: str
@@ -9,6 +16,7 @@ class UserCreate(BaseModel):
     avatar_url: Optional[str] = None
     phone: Optional[str] = None
     position: Optional[str] = None
+
 
 class UserRead(BaseModel):
     id: int
@@ -21,15 +29,33 @@ class UserRead(BaseModel):
 
     class Config:
         orm_mode = True
-        
+
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
 
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
+
+class UserUpdate(BaseModel):
+    fullname: Optional[str] = None
+    avatar_url: Optional[str] = None
+    phone: Optional[str] = None
+    position: Optional[str] = None
+
+
+class PasswordChange(BaseModel):
+    current_password: constr(min_length=6)
+    new_password: constr(min_length=6)
+
+
+# ----------------------------------------
+# Финансы
+# ----------------------------------------
 
 class FinanceBase(BaseModel):
     date: date
@@ -41,17 +67,25 @@ class FinanceBase(BaseModel):
     expense: int
     benefit: int
 
+
 class FinanceCreate(FinanceBase):
     pass
 
+
 class FinanceUpdate(FinanceBase):
     pass
+
 
 class FinanceRead(FinanceBase):
     id: int
 
     class Config:
-        from_attributes = True
+        orm_mode = True
+
+
+# ----------------------------------------
+# Оборудование / Мониторинг
+# ----------------------------------------
 
 class EquipmentBase(BaseModel):
     name: str
@@ -69,40 +103,41 @@ class EquipmentBase(BaseModel):
     hw_error: int
     active: int
 
+
 class EquipmentCreate(EquipmentBase):
     pass
 
+
 class EquipmentUpdate(EquipmentBase):
     pass
+
 
 class EquipmentRead(EquipmentBase):
     id: int
 
     class Config:
-        from_attributes = True
+        orm_mode = True
+
+
+# ----------------------------------------
+# Логирование действий пользователя
+# ----------------------------------------
 
 class DataLogCreate(BaseModel):
     action: str
-    parameter: Optional[dict] = {}
+    parameter: Optional[Dict[str, Any]] = {}
     file_name: Optional[str] = None
+
 
 class DataLogRead(BaseModel):
     id: int
     user_id: int
     user_fullname: str
+    user_role: str
     action: str
-    parameter: Optional[dict]
+    parameter: Optional[Dict[str, Any]]
     file_name: Optional[str]
+    created_at: datetime
 
     class Config:
-        from_attributes = True
-
-class UserUpdate(BaseModel):
-    fullname: Optional[str] = None
-    avatar_url: Optional[str] = None
-    phone: Optional[str] = None
-    position: Optional[str] = None
-
-class PasswordChange(BaseModel):
-    current_password: constr(min_length=6)
-    new_password: constr(min_length=6)
+        orm_mode = True

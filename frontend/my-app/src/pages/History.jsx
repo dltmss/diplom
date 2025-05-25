@@ -16,10 +16,18 @@ import {
   ArrowRightCircle,
   Trash2,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "../components/ui/dialog";
 import { useHistoryLog } from "../contexts/HistoryContext";
-import { useSettings } from "../contexts/SettingsContext.jsx";
+import { useSettings } from "../contexts/SettingsContext";
 
-// Типы событий для KPI и отображения
+// Типы событий для KPI
 const EVENT_TYPES = [
   {
     key: "Upload CSV",
@@ -49,103 +57,54 @@ const EVENT_TYPES = [
 
 export default function History() {
   const navigate = useNavigate();
-  const { events: records, clearHistory, deleteEvent } = useHistoryLog();
+  const { events: records, deleteEvent, clearHistory } = useHistoryLog();
   const { settings } = useSettings();
   const { timeFormat, language } = settings;
 
-  // --- Фильтры ---
+  // Фильтры
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [typeFilter, setTypeFilter] = useState(
-    EVENT_TYPES.reduce((acc, { key }) => {
-      acc[key] = true;
-      return acc;
-    }, {})
+    EVENT_TYPES.reduce((acc, { key }) => ({ ...acc, [key]: true }), {})
   );
 
-  // Фильтрация записей
+  // Состояния для модалок
+  const [toDeleteId, setToDeleteId] = useState(null);
+  const [clearAllOpen, setClearAllOpen] = useState(false);
+
+  // Отфильтрованные записи
   const filtered = useMemo(() => {
     return records.filter((r) => {
-      const d = r.timestamp.slice(0, 10);
-      if (dateFrom && d < dateFrom) return false;
-      if (dateTo && d > dateTo) return false;
-      if (!typeFilter[r.type]) return false;
+      const datePart = (r.created_at || r.timestamp || "").slice(0, 10);
+      if (dateFrom && datePart < dateFrom) return false;
+      if (dateTo && datePart > dateTo) return false;
+      if (!typeFilter[r.action]) return false;
       if (
         search &&
         !JSON.stringify(r).toLowerCase().includes(search.toLowerCase())
-      ) {
+      )
         return false;
-      }
       return true;
     });
   }, [records, search, dateFrom, dateTo, typeFilter]);
 
-  // KPI‑счётчики
+  // KPI-счётчики
   const stats = useMemo(() => {
-    const cnt = {};
-    EVENT_TYPES.forEach(({ key }) => (cnt[key] = 0));
+    const cnt = EVENT_TYPES.reduce(
+      (acc, { key }) => ({ ...acc, [key]: 0 }),
+      {}
+    );
     records.forEach((r) => {
-      if (cnt[r.type] != null) cnt[r.type]++;
+      if (cnt[r.action] != null) cnt[r.action]++;
     });
     return cnt;
   }, [records]);
 
-  // Экспорт лога в CSV
-  const exportLogCSV = () => {
-    if (!records.length) return;
-    const header = [
-      "Уақыты",
-      "Пайдаланушы",
-      "Іс-әрекет",
-      "Параметрлер",
-      "Файл",
-    ];
-    const rows = records.map((r) => [
-      r.timestamp,
-      r.user,
-      r.type,
-      JSON.stringify(r.params),
-      r.file || "",
-    ]);
-    const csv = [header.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `history_${Date.now()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  // Повторить действие
-  const rerun = (rec) => {
-    switch (rec.type) {
-      case "Upload CSV":
-        navigate("/analytics/upload", { state: rec.params });
-        break;
-      case "Filter CSV":
-        navigate("/analytics/filter", { state: rec.params });
-        break;
-      case "Export CSV":
-        if (rec.file) {
-          const a = document.createElement("a");
-          a.href = URL.createObjectURL(new Blob([], { type: "text/csv" }));
-          a.download = rec.file;
-          a.click();
-        }
-        break;
-      case "Export PNG":
-        if (rec.file) window.open(rec.file, "_blank");
-        break;
-      default:
-        break;
-    }
-  };
-
-  // Функция форматирования даты/времени по настройкам
-  const formatTimestamp = (isoString) => {
-    const dt = new Date(isoString);
+  // Форматировать время
+  const formatTimestamp = (iso) => {
+    if (!iso) return "—";
+    const dt = new Date(iso);
     const opts = {
       year: "numeric",
       month: "2-digit",
@@ -155,8 +114,61 @@ export default function History() {
       second: "2-digit",
       hour12: timeFormat === "12",
     };
-    // используем язык из настроек, по умолчанию 'kk-KZ'
     return new Intl.DateTimeFormat(language || "kk-KZ", opts).format(dt);
+  };
+
+  // Повторить операцию (пример)
+  const rerun = (r) => {
+    switch (r.action) {
+      case "Upload CSV":
+        navigate("/analytics/upload", { state: r.parameter });
+        break;
+      case "Filter CSV":
+        navigate("/analytics/filter", { state: r.parameter });
+        break;
+      case "Export CSV":
+        if (r.file_name) {
+          const link = document.createElement("a");
+          link.href = URL.createObjectURL(new Blob([], { type: "text/csv" }));
+          link.download = r.file_name;
+          link.click();
+        }
+        break;
+      case "Export PNG":
+        if (r.file_name) window.open(r.file_name, "_blank");
+        break;
+      default:
+        break;
+    }
+  };
+
+  // Экспорт истории в CSV
+  const exportLogCSV = () => {
+    if (!records.length) return;
+    const header = [
+      "Уақыты",
+      "Пайдаланушы",
+      "Роль",
+      "Іс-әрекет",
+      "Параметрлер",
+      "Файл",
+    ];
+    const rows = records.map((r) => [
+      r.created_at || r.timestamp || "",
+      r.user_fullname,
+      r.user_role || "",
+      r.action,
+      JSON.stringify(r.parameter),
+      r.file_name || "",
+    ]);
+    const csv = [header.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `history_${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -247,7 +259,7 @@ export default function History() {
         </CardContent>
       </Card>
 
-      {/* Таблица истории */}
+      {/* Таблица */}
       <div className="overflow-auto max-h-[55vh] bg-white dark:bg-gray-800 shadow rounded-lg">
         <table className="min-w-full text-sm">
           <thead className="bg-gray-100 dark:bg-gray-700">
@@ -255,6 +267,7 @@ export default function History() {
               {[
                 "Күн/Уақыт",
                 "Пайдаланушы",
+                "Роль",
                 "Іс-әрекет",
                 "Параметрлер",
                 "Файл",
@@ -270,40 +283,46 @@ export default function History() {
             </tr>
           </thead>
           <tbody>
+            {filtered.length === 0 && (
+              <tr>
+                <td
+                  colSpan={7}
+                  className="p-4 text-center text-gray-500 dark:text-gray-300"
+                >
+                  Лог табылмады
+                </td>
+              </tr>
+            )}
             {filtered.map((r) => (
               <tr
                 key={r.id}
                 className="odd:bg-white even:bg-gray-50 dark:odd:bg-gray-800 dark:even:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
               >
-                <td className="px-3 py-2 text-gray-800 dark:text-gray-100">
-                  {formatTimestamp(r.timestamp)}
+                <td className="px-3 py-2">
+                  {formatTimestamp(r.created_at || r.timestamp)}
                 </td>
-                <td className="px-3 py-2 text-gray-800 dark:text-gray-100">
-                  {r.user}
+                <td className="px-3 py-2">{r.user_fullname}</td>
+                <td className="px-3 py-2">{r.user_role || "—"}</td>
+                <td className="px-3 py-2">
+                  {EVENT_TYPES.find((e) => e.key === r.action)?.label ||
+                    r.action}
                 </td>
-                <td className="px-3 py-2 text-gray-800 dark:text-gray-100">
-                  {EVENT_TYPES.find((e) => e.key === r.type)?.label || r.type}
-                </td>
-                <td className="px-3 py-2 text-gray-700 dark:text-gray-200">
-                  <pre className="text-xs whitespace-pre-wrap break-words dark:text-gray-200">
-                    {JSON.stringify(r.params, null, 2)}
+                <td className="px-3 py-2 dark:text-gray-200">
+                  <pre className="text-xs whitespace-pre-wrap break-words">
+                    {JSON.stringify(r.parameter, null, 2)}
                   </pre>
                 </td>
-                <td className="px-3 py-2 text-gray-800 dark:text-gray-100">
-                  {r.file || "—"}
-                </td>
+                <td className="px-3 py-2">{r.file_name || "—"}</td>
                 <td className="px-3 py-2 flex gap-2">
                   <button
                     onClick={() => rerun(r)}
-                    title="Қайта орындау"
-                    className="p-1 text-gray-800 dark:text-gray-200 hover:text-blue-600"
+                    className="p-1 hover:text-blue-600"
                   >
                     <ArrowRightCircle size={18} />
                   </button>
                   <button
-                    onClick={() => deleteEvent(r.id)}
-                    title="Жою"
-                    className="p-1 text-gray-800 dark:text-gray-200 hover:text-red-600"
+                    onClick={() => setToDeleteId(r.id)}
+                    className="p-1 hover:text-red-600"
                   >
                     <Trash2 size={18} />
                   </button>
@@ -314,10 +333,10 @@ export default function History() {
         </table>
       </div>
 
-      {/* Управление логом */}
+      {/* Действия */}
       <div className="flex justify-between items-center mt-4">
         <Button
-          onClick={clearHistory}
+          onClick={() => setClearAllOpen(true)}
           className="bg-blue-600 hover:bg-blue-700 text-white"
         >
           Барлығын тазалау
@@ -330,6 +349,59 @@ export default function History() {
           Логты CSV-ке экспорттау
         </Button>
       </div>
+
+      {/* Диалог удаления одной записи */}
+      <Dialog
+        open={toDeleteId !== null}
+        onOpenChange={(open) => !open && setToDeleteId(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Жоюды растайсыз ба?</DialogTitle>
+            <DialogDescription>
+              Сіз бұл жазбаны шынымен жойғыңыз келе ме?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={() => setToDeleteId(null)}>
+              Жоқ
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                deleteEvent(toDeleteId);
+                setToDeleteId(null);
+              }}
+            >
+              Иә
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Диалог очистки всех записей */}
+      <Dialog open={clearAllOpen} onOpenChange={setClearAllOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Барлық жазбаларды жойғызыз ба?</DialogTitle>
+            <DialogDescription>Бұл әрекет қайтымсыз.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={() => setClearAllOpen(false)}>
+              Жоқ
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                clearHistory();
+                setClearAllOpen(false);
+              }}
+            >
+              Иә
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
