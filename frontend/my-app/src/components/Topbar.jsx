@@ -23,6 +23,7 @@ export default function Topbar({ toggleSidebar }) {
     "/finance": "Қаражаттар",
     "/settings": "Жүйені баптау",
     "/profile": "Профиль",
+    "/users": "Қолданушылар", // <-- добавили поддержку страницы пользователей
   };
   const currentTitle =
     Object.entries(titles).find(([path]) =>

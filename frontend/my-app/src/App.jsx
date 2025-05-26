@@ -34,14 +34,12 @@ import AnalyticsVisualize from "./pages/AnalyticsVisualize.jsx";
 import History from "./pages/History.jsx";
 import Settings from "./pages/Settings.jsx";
 import Profile from "./pages/Profile.jsx";
+import Users from "./pages/Users.jsx"; // ← импорт страницы Қолданушылар
 
 // layout components
 import Sidebar from "./components/Sidebar.jsx";
 import Topbar from "./components/Topbar.jsx";
 
-/**
- * The core of the app, where useSettings is already available
- */
 function App() {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const toggleSidebar = () => setSidebarOpen((o) => !o);
@@ -88,6 +86,7 @@ function App() {
                   element={<AnalyticsVisualize />}
                 />
                 <Route path="history" element={<History />} />
+                <Route path="users" element={<Users />} /> {/* ← здесь Users */}
                 <Route path="settings" element={<Settings />} />
                 <Route path="profile" element={<Profile />} />
               </Route>
@@ -102,9 +101,6 @@ function App() {
   );
 }
 
-/**
- * Private area layout with sidebar and topbar
- */
 function PrivateLayout({ isOpen, toggleSidebar }) {
   return (
     <div className="flex">
@@ -119,10 +115,6 @@ function PrivateLayout({ isOpen, toggleSidebar }) {
   );
 }
 
-/**
- * Wrap everything in SettingsProvider at the very top level.
- * Export RootApp as the entry point.
- */
 export default function RootApp() {
   return (
     <SettingsProvider>

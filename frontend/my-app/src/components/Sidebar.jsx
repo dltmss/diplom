@@ -16,7 +16,6 @@ import {
 import { toast } from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext.jsx";
 
-// Диалог вашего UI
 import {
   Dialog,
   DialogContent,
@@ -36,6 +35,8 @@ const menuItems = [
   { to: "/analytics/upload", icon: BarChart2, label: "Аналитика" },
   { to: "/history", icon: Clock, label: "Дерек тарихы" },
   { to: "/finance", icon: DollarSign, label: "Қаражаттар" },
+  // Добавили новый пункт
+  { to: "/users", icon: UserIcon, label: "Қолданушылар" },
   { to: "/settings", icon: Settings, label: "Жүйені баптау" },
 ];
 
@@ -52,12 +53,10 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
       : location.pathname === to
   );
 
-  // Анимация для Framer Motion
   const initial = { opacity: 0, x: -20 };
   const animate = { opacity: 1, x: 0 };
   const transition = { type: "spring", stiffness: 300, damping: 30 };
 
-  // Обработчик выхода
   const handleLogout = async () => {
     setDialogOpen(false);
     await logout();
@@ -65,7 +64,6 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
     navigate("/", { replace: true });
   };
 
-  // Берём photoUrl (с маленькой «u» в контексте) и подставляем заглушку, если нет
   const avatarUrl =
     user?.avatar_url ||
     `https://ui-avatars.com/api/?name=${encodeURIComponent(
