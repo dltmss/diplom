@@ -9,12 +9,11 @@ import {
   Handshake,
   Cpu,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext"; // 👈 добавили
 
 export default function Main() {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user")) || {
-    name: "Қолданушы",
-  };
+  const { user } = useAuth(); // 👈 заменили localStorage
 
   return (
     <div className="min-h-screen w-full bg-gray-50 dark:bg-gray-900 py-10 px-4 animate-fade-in">
@@ -22,7 +21,7 @@ export default function Main() {
         {/* Қош келдіңіз */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 text-center">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight leading-snug">
-            Қош келдіңіз, {user.name}!
+            Қош келдіңіз, {user?.fullname || "Қолданушы"}!
           </h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
             Бұл — басты бет. Мұнда жүйенің негізгі функцияларына жылдам өте
@@ -32,16 +31,18 @@ export default function Main() {
 
         {/* 3 Негізгі функционал */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <div
-            onClick={() => navigate("/analytics/upload")}
-            className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-white rounded-xl p-6 shadow-md hover:shadow-xl transition cursor-pointer"
-          >
-            <UploadCloud className="w-8 h-8 mb-3" />
-            <h3 className="text-xl font-semibold mb-1">Деректерді жүктеу</h3>
-            <p className="text-sm">
-              CSV файлдарын импорттап, визуалдауды бастаңыз.
-            </p>
-          </div>
+          {user?.role !== "user" && ( // 👈 проверка роли
+            <div
+              onClick={() => navigate("/analytics/upload")}
+              className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-white rounded-xl p-6 shadow-md hover:shadow-xl transition cursor-pointer"
+            >
+              <UploadCloud className="w-8 h-8 mb-3" />
+              <h3 className="text-xl font-semibold mb-1">Деректерді жүктеу</h3>
+              <p className="text-sm">
+                CSV файлдарын импорттап, визуалдауды бастаңыз.
+              </p>
+            </div>
+          )}
 
           <div
             onClick={() => navigate("/settings")}

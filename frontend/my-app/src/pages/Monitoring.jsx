@@ -1,4 +1,4 @@
-// src/pages/Monitoring.jsx
+// ✅ Файл: src/pages/Monitoring.jsx
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Card,
@@ -27,8 +27,12 @@ import {
 } from "lucide-react";
 import { useHistoryLog } from "../contexts/HistoryContext.jsx";
 import { useMonitoring } from "../contexts/MonitoringContext.jsx";
+import { useAuth } from "../contexts/AuthContext.jsx";
 
 export default function Monitoring() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+
   const { addEvent } = useHistoryLog();
   const { entries, addEntry, updateEntry, deleteEntry } = useMonitoring();
 
@@ -166,6 +170,7 @@ export default function Monitoring() {
 
   // Сохранить / обновить
   const saveRecord = async () => {
+    if (isAdmin) return;
     const errs = {};
     if (!form.date) errs.date = "Күні міндетті";
     if (Object.keys(errs).length) {
@@ -214,6 +219,7 @@ export default function Monitoring() {
 
   // Редактировать
   const onEdit = (i) => {
+    if (isAdmin) return;
     const e = entries[i];
     setForm({
       eq: e.name,
@@ -235,7 +241,10 @@ export default function Monitoring() {
   };
 
   // Удаление
-  const onDelete = (i) => setConfirmDeleteIdx(i);
+  const onDelete = (i) => {
+    if (isAdmin) return;
+    setConfirmDeleteIdx(i);
+  };
   const confirmDelete = async () => {
     const i = confirmDeleteIdx;
     if (i == null) return;
@@ -284,93 +293,99 @@ export default function Monitoring() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 dark:text-gray-100 p-4 space-y-4 text-xs">
       {/* Форма */}
-      <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition">
-        <CardHeader>
-          <CardTitle className="text-sm text-gray-900 dark:text-gray-100">
-            Мониторинг жазбасын қосу / өзгерту
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-          {/* Селект оборудования */}
-          <Select
-            value={form.eq}
-            onValueChange={(v) => setForm((f) => ({ ...f, eq: v }))}
-          >
-            <SelectTrigger className="h-7 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
-              <SelectValue placeholder="Жабдық" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel className="text-xs dark:text-gray-300">
-                  Жабдық
-                </SelectLabel>
-                {equipmentList.map((eq) => (
-                  <SelectItem key={eq.code} value={eq.code} className="text-xs">
-                    {eq.name} ({eq.code})
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-
-          {/* Дата */}
-          <div>
-            <Input
-              type="date"
-              name="date"
-              value={form.date}
-              onChange={handleChange}
-              className="h-7 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
-              aria-invalid={!!errors.date}
-            />
-            {errors.date && (
-              <p className="text-red-600 text-xs">{errors.date}</p>
-            )}
-          </div>
-
-          {/* Остальные поля */}
-          {formFields.map((f) => (
-            <Input
-              key={f.name}
-              name={f.name}
-              value={form[f.name]}
-              onChange={handleChange}
-              placeholder={f.placeholder}
-              className="h-7 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
-            />
-          ))}
-
-          {/* Кнопки */}
-          <div className="col-span-full flex justify-end gap-2 mt-2">
-            <Button
-              onClick={saveRecord}
-              disabled={isSaving}
-              className="h-7 px-2 bg-blue-600 hover:bg-blue-700 text-white text-xs"
+      {!isAdmin && (
+        <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition">
+          <CardHeader>
+            <CardTitle className="text-sm text-gray-900 dark:text-gray-100">
+              Мониторинг жазбасын қосу / өзгерту
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+            {/* Селект оборудования */}
+            <Select
+              value={form.eq}
+              onValueChange={(v) => setForm((f) => ({ ...f, eq: v }))}
             >
-              {isSaving ? (
-                <Loader className="animate-spin w-3 h-3 mr-1 inline" />
-              ) : editIdx == null ? (
-                "Қосу"
-              ) : (
-                "Жаңарту"
+              <SelectTrigger className="h-7 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
+                <SelectValue placeholder="Жабдық" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel className="text-xs dark:text-gray-300">
+                    Жабдық
+                  </SelectLabel>
+                  {equipmentList.map((eq) => (
+                    <SelectItem
+                      key={eq.code}
+                      value={eq.code}
+                      className="text-xs"
+                    >
+                      {eq.name} ({eq.code})
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+
+            {/* Дата */}
+            <div>
+              <Input
+                type="date"
+                name="date"
+                value={form.date}
+                onChange={handleChange}
+                className="h-7 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                aria-invalid={!!errors.date}
+              />
+              {errors.date && (
+                <p className="text-red-600 text-xs">{errors.date}</p>
               )}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={exportCSV}
-              disabled={isExporting || !entries.length}
-              className="h-7 px-2 flex items-center bg-blue-600 hover:bg-blue-700 text-white text-xs"
-            >
-              {isExporting ? (
-                <Loader className="animate-spin w-3 h-3 mr-1 inline" />
-              ) : (
-                <Download className="w-3 h-3 mr-1 inline" />
-              )}
-              CSV экспорт
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            </div>
+
+            {/* Остальные поля */}
+            {formFields.map((f) => (
+              <Input
+                key={f.name}
+                name={f.name}
+                value={form[f.name]}
+                onChange={handleChange}
+                placeholder={f.placeholder}
+                className="h-7 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+              />
+            ))}
+
+            {/* Кнопки */}
+            <div className="col-span-full flex justify-end gap-2 mt-2">
+              <Button
+                onClick={saveRecord}
+                disabled={isSaving}
+                className="h-7 px-2 bg-blue-600 hover:bg-blue-700 text-white text-xs"
+              >
+                {isSaving ? (
+                  <Loader className="animate-spin w-3 h-3 mr-1 inline" />
+                ) : editIdx == null ? (
+                  "Қосу"
+                ) : (
+                  "Жаңарту"
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={exportCSV}
+                disabled={isExporting || !entries.length}
+                className="h-7 px-2 flex items-center bg-blue-600 hover:bg-blue-700 text-white text-xs"
+              >
+                {isExporting ? (
+                  <Loader className="animate-spin w-3 h-3 mr-1 inline" />
+                ) : (
+                  <Download className="w-3 h-3 mr-1 inline" />
+                )}
+                CSV экспорт
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Toast */}
       {toast && (

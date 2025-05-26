@@ -1,4 +1,3 @@
-// src/pages/Users.jsx
 import React, { useState, useEffect, useMemo } from "react";
 import API from "../api/axios.js";
 import { useAuth } from "../contexts/AuthContext.jsx";
@@ -35,20 +34,18 @@ export default function Users() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Фильтры
   const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState("all"); // по-умолчанию «all»
+  const [roleFilter, setRoleFilter] = useState("all");
 
-  // Модалка редактирования
   const [editUser, setEditUser] = useState(null);
   const [isDialogOpen, setDialogOpen] = useState(false);
 
-  // Загружаем всех пользователей (суперадмин)
+  // ✅ Загружаем всех пользователей
   useEffect(() => {
     (async () => {
       setLoading(true);
       try {
-        const { data } = await API.get("/users");
+        const { data } = await API.get("/users/all");
         setUsers(data);
       } catch (err) {
         toast.error("Не удалось загрузить пользователей");
@@ -58,7 +55,6 @@ export default function Users() {
     })();
   }, []);
 
-  // Отфильтрованный список
   const filtered = useMemo(() => {
     return users.filter((u) => {
       const term = search.trim().toLowerCase();
@@ -78,55 +74,55 @@ export default function Users() {
     });
   }, [users, search, roleFilter]);
 
-  // Открыть форму редактирования
   const onEdit = (u) => {
     setEditUser({ ...u });
     setDialogOpen(true);
   };
 
-  // Сохранить изменения
+  // ✅ Сохраняем изменения в роли и должности
   const saveChanges = async () => {
     try {
       const payload = {
         role: editUser.role,
         position: editUser.position,
       };
-      const { data } = await API.put(`/users/${editUser.id}`, payload);
+      const { data } = await API.patch(
+        `/users/${editUser.id}/update-role`,
+        payload
+      );
       setUsers((prev) => prev.map((u) => (u.id === data.id ? data : u)));
-      toast.success("Пользователь обновлён");
+      toast.success("Пайдаланушы жаңартылды");
       setDialogOpen(false);
     } catch {
-      toast.error("Ошибка сохранения");
+      toast.error("Сақтау кезінде қате шықты");
     }
   };
 
-  // Удалить пользователя
   const onDelete = async (id) => {
-    if (!window.confirm("Удалить пользователя?")) return;
+    if (!window.confirm("Пайдаланушыны жою керек пе?")) return;
     try {
       await API.delete(`/users/${id}`);
       setUsers((prev) => prev.filter((u) => u.id !== id));
-      toast.success("Пользователь удалён");
+      toast.success("Пайдаланушы жойылды");
     } catch {
-      toast.error("Ошибка удаления");
+      toast.error("Жою кезінде қате");
     }
   };
 
   return (
     <div className="space-y-6 p-6 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      {/* Фильтры */}
       <div className="flex flex-wrap gap-4">
         <Input
-          placeholder="По ФИО или email…"
+          placeholder="ФИО немесе email арқылы іздеу…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
         <Select value={roleFilter} onValueChange={setRoleFilter}>
           <SelectTrigger className="w-40">
-            <SelectValue placeholder="По роли" />
+            <SelectValue placeholder="Рөлі бойынша" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Все роли</SelectItem>
+            <SelectItem value="all">Барлығы</SelectItem>
             <SelectItem value="user">User</SelectItem>
             <SelectItem value="admin">Admin</SelectItem>
             <SelectItem value="superadmin">Superadmin</SelectItem>
@@ -134,7 +130,6 @@ export default function Users() {
         </Select>
       </div>
 
-      {/* Таблица */}
       <div className="overflow-auto border rounded">
         <Table className="min-w-full">
           <TableHeader className="bg-gray-100 dark:bg-gray-700">
@@ -142,19 +137,19 @@ export default function Users() {
               <TableHead>Avatar</TableHead>
               <TableHead>ФИО</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Роль</TableHead>
-              <TableHead>Должность</TableHead>
-              <TableHead className="text-right">Действия</TableHead>
+              <TableHead>Рөлі</TableHead>
+              <TableHead>Лауазымы</TableHead>
+              <TableHead className="text-right">Әрекеттер</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6}>Загрузка…</TableCell>
+                <TableCell colSpan={6}>Жүктелуде…</TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6}>Нет пользователей</TableCell>
+                <TableCell colSpan={6}>Пайдаланушылар табылмады</TableCell>
               </TableRow>
             ) : (
               filtered.map((u) => (
@@ -186,13 +181,16 @@ export default function Users() {
                     >
                       <Pencil className="w-4 h-4 text-blue-600" />
                     </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => onDelete(u.id)}
-                    >
-                      <Trash2 className="w-4 h-4 text-red-600" />
-                    </Button>
+
+                    {user.id !== u.id && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => onDelete(u.id)}
+                      >
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))
@@ -201,16 +199,15 @@ export default function Users() {
         </Table>
       </div>
 
-      {/* Модалка редактирования */}
       <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Редактировать пользователя</DialogTitle>
+            <DialogTitle>Пайдаланушыны өзгерту</DialogTitle>
           </DialogHeader>
           {editUser && (
             <div className="space-y-4">
               <div>
-                <label className="block mb-1">Роль</label>
+                <label className="block mb-1">Рөлі</label>
                 <Select
                   value={editUser.role}
                   onValueChange={(v) => setEditUser((u) => ({ ...u, role: v }))}
@@ -226,7 +223,7 @@ export default function Users() {
                 </Select>
               </div>
               <div>
-                <label className="block mb-1">Должность</label>
+                <label className="block mb-1">Лауазымы</label>
                 <Input
                   value={editUser.position || ""}
                   onChange={(e) =>
@@ -238,9 +235,9 @@ export default function Users() {
           )}
           <DialogFooter className="flex justify-end space-x-2">
             <DialogClose asChild>
-              <Button variant="outline">Отмена</Button>
+              <Button variant="outline">Бас тарту</Button>
             </DialogClose>
-            <Button onClick={saveChanges}>Сохранить</Button>
+            <Button onClick={saveChanges}>Сақтау</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

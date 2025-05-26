@@ -1,4 +1,3 @@
-// src/components/Sidebar.jsx
 import React, { useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -29,15 +28,15 @@ import { Button } from "../components/ui/button";
 
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
-const menuItems = [
-  { to: "/dashboard", icon: LayoutDashboard, label: "Басты бет" },
-  { to: "/monitoring", icon: Activity, label: "Мониторинг" },
-  { to: "/analytics/upload", icon: BarChart2, label: "Аналитика" },
-  { to: "/history", icon: Clock, label: "Дерек тарихы" },
-  { to: "/finance", icon: DollarSign, label: "Қаражаттар" },
-  // Добавили новый пункт
-  { to: "/users", icon: UserIcon, label: "Қолданушылар" },
-  { to: "/settings", icon: Settings, label: "Жүйені баптау" },
+// Все возможные вкладки
+const allMenuItems = [
+  { to: "/dashboard", icon: LayoutDashboard, label: "Басты бет", roles: ["user", "admin", "superadmin"] },
+  { to: "/monitoring", icon: Activity, label: "Мониторинг", roles: ["user", "admin", "superadmin"] },
+  { to: "/analytics/upload", icon: BarChart2, label: "Аналитика", roles: ["admin", "superadmin"] },
+  { to: "/history", icon: Clock, label: "Дерек тарихы", roles: ["user", "admin", "superadmin"] },
+  { to: "/finance", icon: DollarSign, label: "Қаражаттар", roles: ["superadmin"] },
+  { to: "/users", icon: UserIcon, label: "Қолданушылар", roles: ["superadmin"] },
+  { to: "/settings", icon: Settings, label: "Жүйені баптау", roles: ["user", "admin", "superadmin"] },
 ];
 
 export default function Sidebar({ isOpen, toggleSidebar }) {
@@ -46,8 +45,15 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
   const location = useLocation();
   const [isDialogOpen, setDialogOpen] = useState(false);
 
-  // Определяем активный пункт
-  const activeIndex = menuItems.findIndex(({ to }) =>
+  if (!user) return null;
+
+  const userRole = user.role;
+
+  const filteredMenu = allMenuItems.filter((item) =>
+    item.roles.includes(userRole)
+  );
+
+  const activeIndex = filteredMenu.findIndex(({ to }) =>
     to === "/analytics/upload"
       ? location.pathname.startsWith("/analytics")
       : location.pathname === to
@@ -65,9 +71,9 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
   };
 
   const avatarUrl =
-    user?.avatar_url ||
+    user.avatar_url ||
     `https://ui-avatars.com/api/?name=${encodeURIComponent(
-      user?.fullname || "?"
+      user.fullname || "?"
     )}&background=4f46e5&color=fff`;
 
   return (
@@ -99,9 +105,7 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
           initial={initial}
           animate={animate}
           transition={{ ...transition, delay: 0.1 }}
-          className={`${
-            isOpen ? "px-6" : "px-0"
-          } pt-12 pb-4 border-b border-gray-200 dark:border-gray-700`}
+          className={`${isOpen ? "px-6" : "px-0"} pt-12 pb-4 border-b border-gray-200 dark:border-gray-700`}
         >
           <div className={isOpen ? "text-left" : "flex justify-center"}>
             <h1 className="text-2xl font-extrabold tracking-tight text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
@@ -115,33 +119,23 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
           initial={initial}
           animate={animate}
           transition={{ ...transition, delay: 0.15 }}
-          className={`${
-            isOpen ? "px-6" : "px-0"
-          } pt-4 pb-4 border-b border-gray-200 dark:border-gray-700`}
+          className={`${isOpen ? "px-6" : "px-0"} pt-4 pb-4 border-b border-gray-200 dark:border-gray-700`}
         >
-          <div
-            className={
-              isOpen ? "flex items-center space-x-3" : "flex justify-center"
-            }
-          >
+          <div className={isOpen ? "flex items-center space-x-3" : "flex justify-center"}>
             <Avatar className="w-12 h-12 border-2 border-indigo-500">
-              {avatarUrl ? (
-                <AvatarImage
-                  src={`http://localhost:8000${avatarUrl}`}
-                  alt={user?.fullname || "User"}
-                />
-              ) : null}
-              <AvatarFallback>
-                {user?.fullname?.[0]?.toUpperCase() || "U"}
-              </AvatarFallback>
+              <AvatarImage
+                src={`http://localhost:8000${avatarUrl}`}
+                alt={user.fullname}
+              />
+              <AvatarFallback>{user.fullname?.[0]?.toUpperCase() || "U"}</AvatarFallback>
             </Avatar>
             {isOpen && (
               <div className="overflow-hidden leading-tight">
                 <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
-                  {user?.fullname || "Гость"}
+                  {user.fullname}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {user?.role || "User"}
+                  {user.role}
                 </p>
               </div>
             )}
@@ -158,7 +152,7 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
               transition={{ type: "spring", stiffness: 500, damping: 40 }}
             />
           )}
-          {menuItems.map(({ to, icon: Icon, label }) => {
+          {filteredMenu.map(({ to, icon: Icon, label }) => {
             const isActive =
               to === "/analytics/upload"
                 ? location.pathname.startsWith("/analytics")
@@ -260,7 +254,7 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
         </div>
       </aside>
 
-      {/* Диалог подтверждения выхода */}
+      {/* Logout confirmation dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-lg max-w-sm mx-auto">
           <DialogHeader>

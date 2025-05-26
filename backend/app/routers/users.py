@@ -12,6 +12,7 @@ from app.schemas import (
     Token,
     UserUpdate,
     PasswordChange,
+    UserAdminUpdate,
 )
 from app.auth import (
     hash_password,
@@ -131,3 +132,56 @@ async def upload_avatar(
     await db.commit()
 
     return {"avatar_url": current_user.avatar_url}
+
+# Получить всех пользователей (только для админа)
+@router.get("/all", response_model=list[UserRead])
+async def get_all_users(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role(["admin", "superadmin"]))
+):
+    result = await db.execute(select(User))
+    return result.scalars().all()
+
+
+# Изменить роль и/или должность пользователя
+@router.patch("/{user_id}/update-role", response_model=UserRead)
+async def update_user_role_and_position(
+    user_id: int,
+    data: UserAdminUpdate,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role(["admin", "superadmin"]))
+):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="Пайдаланушы табылмады")
+
+    for field, value in data.dict(exclude_unset=True).items():
+        setattr(user, field, value)
+
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+@router.delete("/{user_id}", status_code=204)
+async def delete_user(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role(["admin", "superadmin"]))
+):
+    # ❌ Запрещаем удаление самого себя
+    if user_id == current_user.id:
+        raise HTTPException(
+            status_code=400,
+            detail="Өзіңізді жоюға болмайды"
+        )
+
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="Пайдаланушы табылмады")
+
+    await db.delete(user)
+    await db.commit()

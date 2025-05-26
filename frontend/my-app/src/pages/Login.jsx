@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Mail, Lock, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { loginUser } from "@/lib/auth"; // 👈 импорт
+import { useAuth } from "@/contexts/AuthContext"; // 👈
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -29,7 +31,8 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await loginUser({ email, password }); // 👈 вызов API
+      await loginUser({ email, password }); // 👈 сохраняет токен
+      await login(); // 👈 подгружает пользователя из /me и сохраняет в AuthContext
       toast.success("Сәтті кірдіңіз!");
       navigate("/dashboard");
     } catch (err) {

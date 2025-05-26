@@ -36,6 +36,11 @@ class UserLogin(BaseModel):
     password: str
 
 
+class UserAdminUpdate(BaseModel):
+    role: Optional[str] = None
+    position: Optional[str] = None
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
